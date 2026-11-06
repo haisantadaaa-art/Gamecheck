@@ -1,93 +1,110 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { UserProfile } from '../types';
+import { UserProfile, FriendUser } from '../types';
+import { soundManager } from '../services/audio';
+import confetti from 'canvas-confetti';
 
 interface AuthContextType {
   user: UserProfile | null;
   isAuthenticated: boolean;
-  loginGuest: (username?: string, avatar?: string) => UserProfile;
-  loginAccount: (username: string, pass: string) => Promise<UserProfile>;
+  isRegistered: boolean;
+  registerUser: (username: string, avatar: string, bio?: string) => Promise<UserProfile>;
   logout: () => void;
   updateUserCoins: (delta: number) => void;
   recordGameResult: (won: boolean) => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
+  // Sound controls
   soundEnabled: boolean;
   toggleSound: () => void;
-  voiceAnnouncerEnabled: boolean;
-  toggleVoiceAnnouncer: () => void;
+  // Friends System
+  friends: FriendUser[];
+  addFriend: (username: string) => boolean;
+  transferCoins: (recipientName: string, amount: number, message?: string) => Promise<boolean>;
+  // Online Time Rewards
+  onlineSeconds: number;
+  claimedMilestones: number[]; // e.g. [180, 600, 1800]
+  claimOnlineReward: (secondsMilestone: number, rewardAmount: number) => void;
 }
 
-const DEFAULT_AVATARS = [
-  '🐉', '⚡', '🔥', '⚔️', '👑', '🦅', '🐯', '🦊', '🚀', '🥋', '🎯', '💎'
-];
+const STORAGE_KEY = 'vietplay_huynhau_user';
+const FRIENDS_KEY = 'vietplay_huynhau_friends';
+const CLAIMED_REWARDS_KEY = 'vietplay_claimed_milestones';
 
-const STORAGE_KEY = 'vietplay_user_session';
+const DEFAULT_FRIENDS: FriendUser[] = [
+  { id: 'f_1', username: 'Huỳnh Âu (Admin)', avatar: '👑', isOnline: true, level: 99, statusText: 'Đang phát triển tính năng mới' },
+  { id: 'f_2', username: 'Lạc Long Quân', avatar: '🐉', isOnline: true, level: 28, statusText: 'Đang tìm phòng Cờ Caro' },
+  { id: 'f_3', username: 'Thần Bài Sài Gòn', avatar: '⚡', isOnline: true, level: 19, statusText: 'Vừa thắng 50k Bầu Cua' },
+  { id: 'f_4', username: 'Bá Vương Hà Nội', avatar: '🔥', isOnline: false, level: 15, statusText: 'Ngoại tuyến' },
+];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
-  const [voiceAnnouncerEnabled, setVoiceAnnouncerEnabled] = useState<boolean>(true);
+  const [friends, setFriends] = useState<FriendUser[]>([]);
+  const [onlineSeconds, setOnlineSeconds] = useState<number>(0);
+  const [claimedMilestones, setClaimedMilestones] = useState<number[]>([]);
 
+  // 1. Load user session & friends on mount
   useEffect(() => {
-    // Load persisted user session
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         setUser(JSON.parse(stored));
+      }
+      const storedFriends = localStorage.getItem(FRIENDS_KEY);
+      if (storedFriends) {
+        setFriends(JSON.parse(storedFriends));
       } else {
-        // Auto-create initial quick guest so user can play instantly without annoying barriers!
-        const initial = createDefaultGuest();
-        setUser(initial);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+        setFriends(DEFAULT_FRIENDS);
+        localStorage.setItem(FRIENDS_KEY, JSON.stringify(DEFAULT_FRIENDS));
+      }
+      const storedClaimed = localStorage.getItem(CLAIMED_REWARDS_KEY);
+      if (storedClaimed) {
+        setClaimedMilestones(JSON.parse(storedClaimed));
       }
     } catch {
-      const initial = createDefaultGuest();
-      setUser(initial);
+      setFriends(DEFAULT_FRIENDS);
     }
   }, []);
 
-  const createDefaultGuest = (customName?: string, customAvatar?: string): UserProfile => {
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const randomAvatar = DEFAULT_AVATARS[Math.floor(Math.random() * DEFAULT_AVATARS.length)];
-    return {
+  // 2. Real-time online duration tracking timer (1 tick per second)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setOnlineSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Register New Account
+  const registerUser = async (username: string, avatar: string, bio?: string): Promise<UserProfile> => {
+    const newUser: UserProfile = {
       id: 'user_' + Math.random().toString(36).substring(2, 9),
-      username: customName || `ChiếnBinh_${randomNum}`,
-      avatar: customAvatar || randomAvatar,
-      coins: 20000, // 20k VietCoins tặng tân thủ
+      username: username.trim(),
+      avatar: avatar || '🐉',
+      coins: 50000, // Tặng 50.000 Xu chào mừng tân thủ
       level: 1,
       wins: 0,
       losses: 0,
-      title: 'Tân Thủ VietPlay',
-      isGuest: true,
+      title: 'Chiến Binh Huỳnh Âu Arena',
+      isGuest: false,
+      isRegistered: true,
+      bio: bio || 'Đam mê game dân gian & eSports',
       createdAt: Date.now(),
     };
-  };
 
-  const loginGuest = (username?: string, avatar?: string): UserProfile => {
-    const newUser = createDefaultGuest(username, avatar);
     setUser(newUser);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
+    soundManager.playVictory();
+    try {
+      confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
+    } catch {}
     return newUser;
   };
 
-  const loginAccount = async (username: string): Promise<UserProfile> => {
-    const existing = user ? { ...user } : createDefaultGuest();
-    const updated: UserProfile = {
-      ...existing,
-      username: username.trim() || existing.username,
-      isGuest: false,
-      title: 'Hiệp Khách VietPlay',
-    };
-    setUser(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    return updated;
-  };
-
   const logout = () => {
-    const freshGuest = createDefaultGuest();
-    setUser(freshGuest);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(freshGuest));
+    setUser(null);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   const updateUserCoins = (delta: number) => {
@@ -108,10 +125,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const totalGames = wins + losses;
       const level = Math.floor(totalGames / 3) + 1;
 
-      let title = 'Tân Thủ';
-      if (level >= 10) title = 'Đại Tông Sư';
-      else if (level >= 6) title = 'Cao Thủ Võ Lâm';
-      else if (level >= 3) title = 'Hiệp Khách';
+      let title = 'Tân Thủ Huỳnh Âu';
+      if (level >= 15) title = 'Đại Tông Sư Võ Lâm';
+      else if (level >= 8) title = 'Cao Thủ Bất Bại';
+      else if (level >= 4) title = 'Hiệp Khách Lừng Danh';
 
       const updated = { ...prev, wins, losses, level, title };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -129,23 +146,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const toggleSound = () => setSoundEnabled((v) => !v);
-  const toggleVoiceAnnouncer = () => setVoiceAnnouncerEnabled((v) => !v);
+
+  // Add friend
+  const addFriend = (username: string): boolean => {
+    const trimmed = username.trim();
+    if (!trimmed) return false;
+    if (friends.some((f) => f.username.toLowerCase() === trimmed.toLowerCase())) {
+      return false;
+    }
+    const avatars = ['🐉', '⚡', '🔥', '👑', '🦅', '🐯', '🦊'];
+    const newFriend: FriendUser = {
+      id: 'f_' + Math.random().toString(36).substring(2, 7),
+      username: trimmed,
+      avatar: avatars[Math.floor(Math.random() * avatars.length)],
+      isOnline: true,
+      level: Math.floor(1 + Math.random() * 10),
+      statusText: 'Vừa kết bạn',
+    };
+    const updated = [newFriend, ...friends];
+    setFriends(updated);
+    localStorage.setItem(FRIENDS_KEY, JSON.stringify(updated));
+    soundManager.playVictory();
+    return true;
+  };
+
+  // Transfer coins to friend
+  const transferCoins = async (recipientName: string, amount: number, message?: string): Promise<boolean> => {
+    if (!user || user.coins < amount || amount <= 0) {
+      alert('Số dư VietCoins của bạn không đủ để tặng!');
+      return false;
+    }
+
+    updateUserCoins(-amount);
+    soundManager.playChip();
+    try {
+      confetti({ particleCount: 50, spread: 50 });
+    } catch {}
+    return true;
+  };
+
+  // Claim online time milestone reward
+  const claimOnlineReward = (secondsMilestone: number, rewardAmount: number) => {
+    if (claimedMilestones.includes(secondsMilestone)) return;
+    updateUserCoins(rewardAmount);
+    const updated = [...claimedMilestones, secondsMilestone];
+    setClaimedMilestones(updated);
+    localStorage.setItem(CLAIMED_REWARDS_KEY, JSON.stringify(updated));
+    soundManager.playVictory();
+    try {
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+    } catch {}
+  };
 
   return (
     <AuthContext.Provider
       value={{
         user,
         isAuthenticated: !!user,
-        loginGuest,
-        loginAccount,
+        isRegistered: !!user?.isRegistered,
+        registerUser,
         logout,
         updateUserCoins,
         recordGameResult,
         updateProfile,
         soundEnabled,
         toggleSound,
-        voiceAnnouncerEnabled,
-        toggleVoiceAnnouncer,
+        friends,
+        addFriend,
+        transferCoins,
+        onlineSeconds,
+        claimedMilestones,
+        claimOnlineReward,
       }}
     >
       {children}

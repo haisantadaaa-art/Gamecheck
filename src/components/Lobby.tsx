@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Play, PlusCircle, Users, Trophy, Sparkles, Volume2, ShieldCheck, Flame, Globe2, Mic } from 'lucide-react';
-import { GameType, GameRoom } from '../types';
+import { Play, PlusCircle, Users, Trophy, Sparkles, Volume2, Flame, Globe2, Mic, Clock, Gift, MessageSquare, ChevronRight, Swords } from 'lucide-react';
+import { GameType } from '../types';
 import { soundManager } from '../services/audio';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +12,19 @@ interface LobbyProps {
   onOpenLiveVoice: () => void;
   onOpenTrending: () => void;
   onOpenDeployGuide: () => void;
+  onOpenFriends: () => void;
+  onOpenCommunity: () => void;
+  onOpenDaily: () => void;
+  roomList?: Array<{
+    id: string;
+    code: string;
+    name: string;
+    gameType: GameType;
+    playersCount: number;
+    maxPlayers: number;
+    status: string;
+    stakes: number;
+  }>;
 }
 
 const FEATURED_GAMES: Array<{
@@ -30,7 +43,7 @@ const FEATURED_GAMES: Array<{
     tagline: '15x15 Gomoku kinh điển, chặn tam hiểm hóc & 5 quân thẳng hàng.',
     icon: '⭕',
     playersLabel: '1v1 Online & Bot AI',
-    badge: 'Được chơi nhiều nhất',
+    badge: '1v1 Cực Căng',
     gradient: 'from-amber-600/30 via-red-900/20 to-slate-950',
     borderGlow: 'hover:border-amber-500/60',
   },
@@ -40,7 +53,7 @@ const FEATURED_GAMES: Array<{
     tagline: 'Quốc dân dân gian! Lắc bát úp mở hồi hộp, cược vui nhận VietCoins bội phần.',
     icon: '🎲',
     playersLabel: '2-8 Người Cùng Bàn',
-    badge: 'Hot Lễ Hội',
+    badge: 'Hot Nhất',
     gradient: 'from-rose-600/30 via-orange-900/20 to-slate-950',
     borderGlow: 'hover:border-rose-500/60',
   },
@@ -50,7 +63,7 @@ const FEATURED_GAMES: Array<{
     tagline: '13 lá bài kịch tính, chặt heo, 3 đôi thông, tứ quý luật chuẩn Nam Bộ.',
     icon: '🃏',
     playersLabel: '2-4 Người Chơi',
-    badge: 'Đấu Trí Chiến Thuật',
+    badge: 'Chiến Thuật Cao',
     gradient: 'from-emerald-600/30 via-teal-900/20 to-slate-950',
     borderGlow: 'hover:border-emerald-500/60',
   },
@@ -60,18 +73,38 @@ const FEATURED_GAMES: Array<{
     tagline: 'Đổ xí ngầu xúc xắc, ra quân thần tốc, đá ngựa đối phương về đích.',
     icon: '🐴',
     playersLabel: '2-4 Người Chơi',
-    badge: 'Ký Ức Tuổi Thơ',
+    badge: 'Tuổi Thơ Ký Ức',
     gradient: 'from-blue-600/30 via-indigo-900/20 to-slate-950',
     borderGlow: 'hover:border-blue-500/60',
+  },
+  {
+    type: 'oanquan',
+    title: 'Ô Ăn Quan Dân Gian',
+    tagline: 'Đỉnh cao trí tuệ truyền thống: 10 ô dân, 2 ô quan, rải sỏi ăn trọn bàn.',
+    icon: '🪨',
+    playersLabel: '1v1 Đấu Trí & Bot',
+    badge: 'Trí Tuệ Việt',
+    gradient: 'from-yellow-600/30 via-amber-900/20 to-slate-950',
+    borderGlow: 'hover:border-yellow-500/60',
+  },
+  {
+    type: 'trivia',
+    title: 'Vua Tiếng Việt & Đố Vui',
+    icon: '🏆',
+    tagline: 'Thử tài ca dao tục ngữ và văn hóa dân gian Việt Nam đếm ngược tốc độ.',
+    playersLabel: '2-4 Người Chơi',
+    badge: 'Đấu Trường Tri Thức',
+    gradient: 'from-purple-600/30 via-pink-900/20 to-slate-950',
+    borderGlow: 'hover:border-purple-500/60',
   },
 ];
 
 const LEADERBOARD_DATA = [
-  { rank: 1, name: 'LạcLongQuân_VIP', avatar: '🐉', level: 28, coins: 890000, winRate: '78%' },
-  { rank: 2, name: 'SơnTinh_BấtBại', avatar: '⚡', level: 25, coins: 640000, winRate: '75%' },
-  { rank: 3, name: 'PhùĐổng_ThiênVương', avatar: '🔥', level: 22, coins: 510000, winRate: '71%' },
-  { rank: 4, name: 'BáVương_CờCaro', avatar: '👑', level: 19, coins: 390000, winRate: '68%' },
-  { rank: 5, name: 'Trùm_BầuCua_VN', avatar: '🎲', level: 17, coins: 310000, winRate: '65%' },
+  { rank: 1, name: 'Huỳnh Âu (Developer)', avatar: '👑', level: 99, coins: 2500000, winRate: '92%' },
+  { rank: 2, name: 'LạcLongQuân_VIP', avatar: '🐉', level: 32, coins: 1190000, winRate: '81%' },
+  { rank: 3, name: 'SơnTinh_BấtBại', avatar: '⚡', level: 27, coins: 780000, winRate: '76%' },
+  { rank: 4, name: 'PhùĐổng_ThiênVương', avatar: '🔥', level: 24, coins: 620000, winRate: '72%' },
+  { rank: 5, name: 'BáVương_CờCaro', avatar: '🦁', level: 20, coins: 490000, winRate: '69%' },
 ];
 
 export const Lobby: React.FC<LobbyProps> = ({
@@ -81,8 +114,12 @@ export const Lobby: React.FC<LobbyProps> = ({
   onOpenLiveVoice,
   onOpenTrending,
   onOpenDeployGuide,
+  onOpenFriends,
+  onOpenCommunity,
+  onOpenDaily,
+  roomList = [],
 }) => {
-  const { user } = useAuth();
+  const { user, onlineSeconds, claimedMilestones, claimOnlineReward } = useAuth();
   const [roomPin, setRoomPin] = useState('');
   const [isTtsTesting, setIsTtsTesting] = useState(false);
   const [activeVoicePhrase, setActiveVoicePhrase] = useState<string | null>(null);
@@ -104,8 +141,8 @@ export const Lobby: React.FC<LobbyProps> = ({
       if (res.audioBase64) {
         await soundManager.playWavBase64(res.audioBase64);
       }
-    } catch (e) {
-      console.warn('TTS sample error:', e);
+    } catch {
+      // fallback
     } finally {
       setIsTtsTesting(false);
       setActiveVoicePhrase(null);
@@ -113,39 +150,39 @@ export const Lobby: React.FC<LobbyProps> = ({
   };
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Hero Banner */}
+    <div className="space-y-8 pb-16">
+      {/* Hero Banner with Huỳnh Âu Attribution */}
       <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-amber-950/40 border border-amber-500/30 p-6 sm:p-10 shadow-2xl">
         <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-red-600/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="relative z-10 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider mb-4">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-gradient-to-r from-amber-500/20 to-red-600/20 border border-amber-500/40 text-amber-400 text-xs font-black uppercase tracking-wider mb-4 shadow-sm">
             <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>Cổng Game Nhiều Người Việt Nam Hiện Đại</span>
+            <span>Game được lập trình bởi Huỳnh Âu</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight mb-4">
-            Thỏa Sức So Tài Cùng <br />
+            Đấu Trường Game Việt <br />
             <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-red-500 bg-clip-text text-transparent">
-              Tuyệt Phẩm Game Dân Gian & Hot Nhất
+              Nhiều Người Chơi & Trí Tuệ Dân Gian
             </span>
           </h1>
 
           <p className="text-sm sm:text-base text-slate-300 mb-6 leading-relaxed">
-            Đấu Cờ Caro 15x15 căng thẳng, lắc Bầu Cua Tôm Cá rộn ràng, chặt heo Tiến Lên Miền Nam đỉnh cao, và đua ngựa Cờ Cá Ngựa tuổi thơ. Tích hợp Bình Luận Viên ảo bằng giọng nói trực tiếp và tin tức game thời sự!
+            Hội tụ 6 tựa game đỉnh cao: Cờ Caro 15x15, Bầu Cua Tôm Cá, Tiến Lên Miền Nam, Cờ Cá Ngựa, Ô Ăn Quan và Vua Tiếng Việt. Tích hợp AI Game Master giọng nói trực tiếp, hệ thống kết bạn, chuyển tiền tặng Xu và điểm danh online nhận thưởng!
           </p>
 
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => {
                 soundManager.playClick();
-                onQuickPlay('caro');
+                onQuickPlay('baucua');
               }}
-              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/25 transition cursor-pointer flex items-center gap-2"
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/25 transition cursor-pointer flex items-center gap-2"
             >
               <Play className="w-4 h-4 fill-slate-950" />
-              <span>Chơi Ngay Cờ Caro</span>
+              <span>Chơi Nhanh Bầu Cua</span>
             </button>
 
             <button
@@ -156,44 +193,90 @@ export const Lobby: React.FC<LobbyProps> = ({
               className="px-5 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-100 font-bold text-sm transition cursor-pointer flex items-center gap-2"
             >
               <PlusCircle className="w-4 h-4 text-amber-400" />
-              <span>Tạo Bàn Chơi Mới</span>
+              <span>Tạo Phòng Mới</span>
             </button>
 
             {/* Quick PIN Join Form */}
             <form onSubmit={handleJoinPin} className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-2xl border border-slate-800">
               <input
                 type="text"
-                placeholder="Nhập mã phòng (ví dụ 1234)"
+                placeholder="Nhập mã phòng (ví dụ 8888)"
                 value={roomPin}
                 onChange={(e) => setRoomPin(e.target.value)}
                 maxLength={6}
-                className="w-44 px-3 py-2 bg-transparent text-slate-100 placeholder-slate-500 text-xs focus:outline-none"
+                className="w-44 px-3 py-2 bg-transparent text-slate-100 placeholder-slate-500 text-xs focus:outline-none font-semibold"
               />
               <button
                 type="submit"
                 disabled={!roomPin.trim()}
-                className="px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold text-xs border border-amber-500/30 transition cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold text-xs border border-amber-500/30 transition cursor-pointer"
               >
-                Vào Phòng
+                Vào Bàn
               </button>
             </form>
           </div>
         </div>
       </section>
 
-      {/* 4 Main Game Cards Grid */}
+      {/* Online Duration Reward Tracker Bar */}
+      <section className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-950 to-amber-950/30 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-xl">
+            ⏱️
+          </div>
+          <div>
+            <div className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1">
+              <span>Thưởng Tích Lũy Thời Gian Online</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            </div>
+            <p className="text-xs text-slate-300">
+              Bạn đã online: <b className="font-mono text-white text-sm">{Math.floor(onlineSeconds / 60)} phút {onlineSeconds % 60}s</b>. Cứ mỗi mốc thời gian online nhận ngay hàng chục nghìn Xu!
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {[
+            { sec: 180, label: '3 Phút', reward: 3000 },
+            { sec: 600, label: '10 Phút', reward: 10000 },
+            { sec: 1800, label: '30 Phút', reward: 30000 },
+          ].map((m) => {
+            const isClaimed = claimedMilestones.includes(m.sec);
+            const isReady = onlineSeconds >= m.sec;
+            return (
+              <button
+                key={m.sec}
+                onClick={() => isReady && !isClaimed && claimOnlineReward(m.sec, m.reward)}
+                disabled={!isReady || isClaimed}
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                  isClaimed
+                    ? 'bg-slate-800 text-slate-500 opacity-60 cursor-not-allowed'
+                    : isReady
+                    ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 animate-bounce shadow-md'
+                    : 'bg-slate-950 border border-slate-800 text-slate-400'
+                }`}
+              >
+                <span>{isClaimed ? '✓ Đã nhận' : `🎁 +${(m.reward / 1000)}k Xu`}</span>
+                <span className="text-[10px] opacity-75">({m.label})</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 6 Featured Games Grid */}
       <section>
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-              <span>Đấu Trường Trò Chơi Nổi Bật</span>
+              <span>Kho Trò Chơi Nổi Bật (6 Tựa Game)</span>
               <Flame className="w-6 h-6 text-orange-500" />
             </h2>
-            <p className="text-xs text-slate-400">Chọn tựa game bạn yêu thích để vào bàn chơi trực tuyến hoặc luyện tập cùng AI</p>
+            <p className="text-xs text-slate-400">Tự động bổ sung Bot AI thông minh nếu phòng còn thiếu người chơi</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {FEATURED_GAMES.map((game) => (
             <div
               key={game.type}
@@ -201,7 +284,7 @@ export const Lobby: React.FC<LobbyProps> = ({
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-4xl p-2.5 rounded-2xl bg-slate-950/60 border border-slate-800 shadow-inner group-hover:scale-110 transition-transform">
+                  <span className="text-4xl p-2.5 rounded-2xl bg-slate-950/70 border border-slate-800 shadow-inner group-hover:scale-110 transition-transform">
                     {game.icon}
                   </span>
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
@@ -213,7 +296,7 @@ export const Lobby: React.FC<LobbyProps> = ({
                   {game.title}
                 </h3>
 
-                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed min-h-[48px]">
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed min-h-[44px]">
                   {game.tagline}
                 </p>
 
@@ -232,7 +315,7 @@ export const Lobby: React.FC<LobbyProps> = ({
                   className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-xs transition cursor-pointer shadow-md flex items-center justify-center gap-1.5"
                 >
                   <Play className="w-3.5 h-3.5 fill-slate-950" />
-                  <span>Chơi Ngay</span>
+                  <span>Vào Bàn Chơi</span>
                 </button>
               </div>
             </div>
@@ -240,7 +323,50 @@ export const Lobby: React.FC<LobbyProps> = ({
         </div>
       </section>
 
-      {/* Feature Showcase: Gemini AI Announcer (TTS) & Google Search Trends */}
+      {/* Active Live Rooms List */}
+      <section className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Swords className="w-5 h-5 text-amber-400" />
+            <h3 className="text-lg font-black text-white">Phòng Chơi Đang Mở (Ghép Nhanh)</h3>
+          </div>
+          <span className="text-xs text-slate-400">Tham gia phòng có sẵn hoặc so tài cùng cao thủ</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {[
+            { code: '8888', name: '👑 Sảnh Vip Bầu Cua Huỳnh Âu', type: 'baucua' as GameType, players: '3/8', stakes: 1000 },
+            { code: '6666', name: '⭕ Cờ Caro Giao Lưu 1v1', type: 'caro' as GameType, players: '1/2', stakes: 2000 },
+            { code: '9999', name: '🃏 Tiến Lên Miền Nam Chặt Heo', type: 'tienlen' as GameType, players: '2/4', stakes: 5000 },
+          ].map((r) => (
+            <div
+              key={r.code}
+              className="p-4 rounded-2xl bg-slate-950 border border-slate-800 hover:border-amber-500/50 transition flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="font-mono font-bold text-amber-400">Mã: #{r.code}</span>
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold text-[10px]">
+                    {r.players} người
+                  </span>
+                </div>
+                <h4 className="font-bold text-sm text-slate-100 mb-1">{r.name}</h4>
+                <div className="text-[11px] text-slate-400">Mức cược: 🪙 {r.stakes.toLocaleString()} Xu</div>
+              </div>
+
+              <button
+                onClick={() => onJoinRoomByCode(r.code)}
+                className="mt-3 w-full py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs border border-amber-500/30 transition flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <span>Vào Ngay</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Feature Showcase: Gemini AI Announcer & Google Search Grounding */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Gemini 3.8 Flash TTS Voice Announcer Interactive Showcase */}
         <div className="lg:col-span-2 p-6 rounded-3xl bg-slate-900/90 border border-violet-500/30 shadow-xl">
@@ -251,13 +377,13 @@ export const Lobby: React.FC<LobbyProps> = ({
               </div>
               <div>
                 <h3 className="text-base font-black text-white">Bình Luận Viên Giọng Nói AI (Gemini 3.8 Flash TTS)</h3>
-                <p className="text-xs text-slate-400">Nghe thử giọng đọc truyền cảm, dí dỏm bằng tiếng Việt của AI Master</p>
+                <p className="text-xs text-slate-400">Nghe thử giọng đọc truyền cảm, dí dỏm bằng tiếng Việt của AI Master Huỳnh Âu</p>
               </div>
             </div>
 
             <button
               onClick={onOpenLiveVoice}
-              className="px-3 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+              className="px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer"
             >
               <span>Mở Live Voice</span>
             </button>
@@ -266,8 +392,8 @@ export const Lobby: React.FC<LobbyProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4">
             {[
               {
-                title: 'Chào đón tân thủ',
-                phrase: 'Chào mừng các hiệp khách đến với đấu trường VietPlay! Chúc các bạn có những phút giây so tài nghẹt thở!',
+                title: 'Chào đón hiệp khách',
+                phrase: 'Chào mừng các hiệp khách đến với VietPlay Arena được lập trình bởi Huỳnh Âu! Chúc anh em chơi vui thắng lớn!',
               },
               {
                 title: 'Bình luận Cờ Caro',
@@ -278,8 +404,8 @@ export const Lobby: React.FC<LobbyProps> = ({
                 phrase: 'Bầu Cua mở bát rồi anh em ơi! Hai Bầu một Tôm, đại gia thắng đậm!',
               },
               {
-                title: 'Chặt Heo Tiến Lên',
-                phrase: 'Bất ngờ chưa! Tứ quý xuất kích chặt đứt đôi heo cơ! Cú lật kèo ngoạn mục!',
+                title: 'Ăn Quan Dân Gian',
+                phrase: 'Nước đi rải sỏi thần sầu! Ăn trọn cả ô quan lớn nhận điểm kỷ lục!',
               },
             ].map((item, idx) => (
               <button
@@ -302,7 +428,7 @@ export const Lobby: React.FC<LobbyProps> = ({
           </div>
         </div>
 
-        {/* Live Search Grounding Preview Banner */}
+        {/* Real-time Search Grounding Banner */}
         <div className="p-6 rounded-3xl bg-slate-900/90 border border-blue-500/30 shadow-xl flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-3">
@@ -310,19 +436,19 @@ export const Lobby: React.FC<LobbyProps> = ({
                 <Globe2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-black text-white">Tin Game Hot Việt Nam</h3>
+                <h3 className="text-base font-black text-white">Bảng Tin Game Hot Việt Nam</h3>
                 <p className="text-[11px] text-slate-400">Google Search Grounding (Gemini 3.8 Flash)</p>
               </div>
             </div>
 
-            <div className="space-y-2.5 text-xs text-slate-300">
+            <div className="space-y-2 text-xs text-slate-300">
               <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
                 <div className="font-bold text-blue-400 text-xs">🔥 eSports & Giải Đấu</div>
                 <p className="text-[11px] text-slate-400 mt-0.5">Cập nhật tin tức ĐTDV Liên Quân, VCS LMHT và Meta hot nhất.</p>
               </div>
               <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
                 <div className="font-bold text-amber-400 text-xs">🎮 Game Dân Gian Lên Ngôi</div>
-                <p className="text-[11px] text-slate-400 mt-0.5">Cờ Caro và Bầu Cua tiếp tục thu hút hàng triệu game thủ mọi lứa tuổi.</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Cờ Caro, Bầu Cua và Ô Ăn Quan thu hút đông đảo người chơi.</p>
               </div>
             </div>
           </div>
@@ -332,7 +458,7 @@ export const Lobby: React.FC<LobbyProps> = ({
             className="w-full mt-4 py-2.5 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-300 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
           >
             <Globe2 className="w-3.5 h-3.5" />
-            <span>Xem Toàn Bộ Bảng Tin Hot</span>
+            <span>Xem Chi Tiết Bảng Tin Hot</span>
           </button>
         </div>
       </section>
@@ -396,18 +522,20 @@ export const Lobby: React.FC<LobbyProps> = ({
       <section className="p-6 rounded-3xl bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950/40 border border-emerald-500/30 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1">
-            <ShieldCheck className="w-4 h-4" />
+            <Sparkles className="w-4 h-4" />
             <span>Sẵn Sàng Cho Tên Miền Riêng Của Bạn</span>
           </div>
-          <h4 className="text-base font-bold text-white">Bạn đã có tên miền riêng? Đưa lên GitHub & Chạy trên Vercel ngay hôm nay</h4>
-          <p className="text-xs text-slate-400 mt-0.5">Đầy đủ file vercel.json, Vite build siêu tốc, chứng chỉ SSL miễn phí và kết nối domain 1-click.</p>
+          <h4 className="text-base font-bold text-white">Dự án đã đưa lên GitHub haisantadaaa-art/Gamecheck</h4>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Đầy đủ file vercel.json, Vite build siêu tốc, chứng chỉ SSL miễn phí và kết nối domain 1-click.
+          </p>
         </div>
 
         <button
           onClick={onOpenDeployGuide}
           className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition cursor-pointer shadow-md whitespace-nowrap"
         >
-          Xem Hướng Dẫn Triển Khai
+          Xem Hướng Dẫn Vercel
         </button>
       </section>
     </div>

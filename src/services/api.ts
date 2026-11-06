@@ -1,4 +1,4 @@
-import { TrendingGameArticle, UserProfile } from '../types';
+import { TrendingGameArticle, UserProfile, CommunityPost, CoinTransferRecord } from '../types';
 
 export interface TTSResponse {
   audioBase64: string;
@@ -10,6 +10,11 @@ export interface TrendingResponse {
   articles: TrendingGameArticle[];
   groundingSources?: Array<{ uri: string; title: string }>;
   overview: string;
+}
+
+export interface LiveMasterResponse {
+  replyText: string;
+  audioBase64?: string;
 }
 
 export const api = {
@@ -29,6 +34,29 @@ export const api = {
     return res.json();
   },
 
+  // Live AI Master chat and voice response (Gemini 3.8 Flash + TTS)
+  async askLiveMaster(message: string, gameContext?: any): Promise<LiveMasterResponse> {
+    const res = await fetch('/api/live-master/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, gameContext }),
+    });
+
+    if (!res.ok) {
+      return {
+        replyText: 'Chào mừng bạn đến với VietPlay Arena của Huỳnh Âu! Chúc bạn chơi vui vẻ!',
+      };
+    }
+
+    return res.json();
+  },
+
+  // Game Advice helper
+  async getGameAdvice(gameType: string, gameContext: any): Promise<string> {
+    const res = await this.askLiveMaster(`Tôi đang chơi ${gameType}. Hãy cho tôi 1 lời khuyên chiến thuật ngắn gọn.`, gameContext);
+    return res.replyText || 'Hãy quan sát kỹ thế cờ của đối thủ!';
+  },
+
   // Call server Google Search Grounding for trending games in Vietnam
   async getTrendingGames(): Promise<TrendingResponse> {
     const res = await fetch('/api/trending-games', {
@@ -44,34 +72,61 @@ export const api = {
     return res.json();
   },
 
-  // Call server Gemini 3.8 Flash for AI game advice / commentary
-  async getGameAdvice(gameType: string, gameContext: any): Promise<string> {
-    const res = await fetch('/api/ai-advisor', {
+  // Register account
+  async register(username: string, avatar: string, bio?: string): Promise<UserProfile> {
+    const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gameType, gameContext }),
+      body: JSON.stringify({ username, avatar, bio }),
     });
 
     if (!res.ok) {
-      throw new Error('AI advisor error');
+      throw new Error('Đăng ký tài khoản thất bại');
     }
 
-    const data = await res.json();
-    return data.advice || '';
+    return res.json();
   },
 
-  // Fast login or guest session
-  async fastLogin(username: string, avatar: string): Promise<UserProfile> {
-    const res = await fetch('/api/auth/login', {
+  // Community Posts
+  async getCommunityPosts(): Promise<CommunityPost[]> {
+    const res = await fetch('/api/community/posts');
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.posts || [];
+  },
+
+  async createCommunityPost(postData: Partial<CommunityPost>): Promise<CommunityPost> {
+    const res = await fetch('/api/community/posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, avatar }),
+      body: JSON.stringify(postData),
     });
+    if (!res.ok) throw new Error('Không thể đăng bài');
+    const data = await res.json();
+    return data.post;
+  },
 
-    if (!res.ok) {
-      throw new Error('Đăng nhập thất bại');
-    }
+  async likeCommunityPost(postId: string): Promise<void> {
+    await fetch(`/api/community/posts/${postId}/like`, { method: 'POST' });
+  },
 
+  async commentCommunityPost(postId: string, text: string, authorName: string, authorAvatar: string): Promise<any> {
+    const res = await fetch(`/api/community/posts/${postId}/comment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, authorName, authorAvatar }),
+    });
+    return res.json();
+  },
+
+  // Coin Transfers
+  async transferCoins(senderName: string, recipientName: string, amount: number, message?: string): Promise<any> {
+    const res = await fetch('/api/coins/transfer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ senderName, recipientName, amount, message }),
+    });
+    if (!res.ok) throw new Error('Chuyển tiền thất bại');
     return res.json();
   },
 };

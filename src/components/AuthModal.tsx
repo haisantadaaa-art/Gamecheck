@@ -11,7 +11,7 @@ interface AuthModalProps {
 const AVATAR_OPTIONS = ['🐉', '⚡', '🔥', '⚔️', '👑', '🦅', '🐯', '🦊', '🚀', '🥋', '🎯', '💎', '🎮', '🦄', '🦁', '🐺'];
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const { user, loginGuest, loginAccount, logout, updateProfile } = useAuth();
+  const { user, registerUser, updateProfile } = useAuth();
   const [nickname, setNickname] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || '🐉');
   const [mode, setMode] = useState<'fast' | 'profile'>('fast');
@@ -19,11 +19,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const handleFastLogin = (e: React.FormEvent) => {
+  const handleFastLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     soundManager.playClick();
-    const finalName = nickname.trim() || undefined;
-    loginGuest(finalName, selectedAvatar);
+    const finalName = nickname.trim() || user?.username || `HiệpKhách_${Math.floor(1000 + Math.random() * 9000)}`;
+    if (!user) {
+      await registerUser(finalName, selectedAvatar);
+    } else {
+      updateProfile({ username: finalName, avatar: selectedAvatar });
+    }
     onClose();
   };
 

@@ -5,7 +5,23 @@ import { fileURLToPath } from 'url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { GoogleGenAI, Modality } from '@google/genai';
 import dotenv from 'dotenv';
-import { GameRoom, GameType, RoomPlayer, CaroState, BauCuaState, BauCuaSymbol, PlayingCard, TienLenState, CaNguaState, HorseColor } from './src/types';
+import {
+  GameRoom,
+  GameType,
+  RoomPlayer,
+  CaroState,
+  BauCuaState,
+  BauCuaSymbol,
+  PlayingCard,
+  TienLenState,
+  CaNguaState,
+  HorseColor,
+  OAnQuanState,
+  TriviaState,
+  CommunityPost,
+  CoinTransferRecord,
+  FriendUser,
+} from './src/types';
 
 dotenv.config();
 
@@ -29,6 +45,58 @@ const ai = new GoogleGenAI({
 });
 
 /* ==========================================================================
+   In-Memory Storage for Social & Community Features
+   ========================================================================== */
+
+let communityPosts: CommunityPost[] = [
+  {
+    id: 'post_1',
+    authorId: 'user_huynhau',
+    authorName: 'Huỳnh Âu (Developer)',
+    authorAvatar: '👑',
+    authorTitle: 'Nhà Phát Triển VietPlay',
+    content:
+      'Chào mừng tất cả anh em game thủ đến với VietPlay Arena! Game được lập trình bởi Huỳnh Âu với 6 tựa game hot nhất: Cờ Caro, Bầu Cua, Tiến Lên, Cờ Cá Ngựa, Ô Ăn Quan và Đấu Trường Tri Thức. Chúc anh em chơi vui và leo rank đỉnh cao!',
+    likes: 42,
+    isLiked: false,
+    comments: [
+      {
+        id: 'cmt_1',
+        authorName: 'Lạc Long Quân',
+        authorAvatar: '🐉',
+        text: 'Game mượt mà quá Huỳnh Âu ơi, âm thanh lắc Bầu Cua cực đã!',
+        timestamp: Date.now() - 3600000,
+      },
+      {
+        id: 'cmt_2',
+        authorName: 'Bá Vương Hà Nội',
+        authorAvatar: '⚡',
+        text: 'Ai làm vài ván Cờ Caro không, phòng 1234 nhé anh em!',
+        timestamp: Date.now() - 1800000,
+      },
+    ],
+    timestamp: Date.now() - 7200000,
+    gameTag: 'Thông Báo',
+  },
+  {
+    id: 'post_2',
+    authorId: 'user_99',
+    authorName: 'Sơn Tinh Bất Bại',
+    authorAvatar: '🔥',
+    authorTitle: 'Cao Thủ Bầu Cua',
+    content:
+      'Vừa ăn trọn quả 3 Bầu nhân 3 tiền cược 50k Xu! Cảm ơn đại gia Huỳnh Âu đã tặng thưởng điểm danh cực uy tín.',
+    likes: 19,
+    isLiked: false,
+    comments: [],
+    timestamp: Date.now() - 1200000,
+    gameTag: 'Bầu Cua Tôm Cá',
+  },
+];
+
+let transferLogs: CoinTransferRecord[] = [];
+
+/* ==========================================================================
    REST API Endpoints
    ========================================================================== */
 
@@ -41,7 +109,7 @@ app.post('/api/tts', async (req: Request, res: Response) => {
     }
 
     const speakerStyle = style || 'Hào hứng, dí dỏm như bình luận viên eSports Việt Nam chuyên nghiệp';
-    const selectedVoice = voiceName || 'Puck'; // 'Puck', 'Charon', 'Kore', 'Fenrir', 'Zephyr'
+    const selectedVoice = voiceName || 'Puck';
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.8-flash-tts',
@@ -50,7 +118,7 @@ app.post('/api/tts', async (req: Request, res: Response) => {
           role: 'user',
           parts: [
             {
-              text: text.slice(0, 300), // safety trim
+              text: text.slice(0, 350),
               speechMetadata: {
                 style: speakerStyle,
               },
@@ -80,13 +148,77 @@ app.post('/api/tts', async (req: Request, res: Response) => {
   }
 });
 
-// 2. Trending games & esports with Search Grounding using gemini-3.8-flash
+// 2. Live AI Master Voice & Chat Assistant (Dual Engine)
+app.post('/api/live-master/chat', async (req: Request, res: Response) => {
+  try {
+    const { message, gameContext } = req.body;
+    const userPrompt = message || 'Hãy chào mừng người chơi và bình luận về phòng đấu hiện tại.';
+
+    // Generate intelligent response from Gemini 3.8 Flash
+    const textRes = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: `Bạn là "AI Game Master & Bình Luận Viên Trực Tiếp" của cổng game VietPlay Arena, được lập trình bởi lập trình viên Huỳnh Âu.
+Tính cách của bạn: dí dỏm, hào hứng, am hiểu các game Việt Nam (Cờ Caro, Bầu Cua Tôm Cá, Tiến Lên Miền Nam, Cờ Cá Ngựa, Ô Ăn Quan, Đố Vui Dân Gian).
+Hãy xưng hô thân mật ("tôi" và "bạn", hoặc "anh em hiệp khách"), nhắc khéo lời chào từ lập trình viên Huỳnh Âu khi phù hợp.
+Ngữ cảnh người chơi: ${JSON.stringify(gameContext || {})}.
+Yêu cầu của người chơi: "${userPrompt}".
+Hãy trả lời ngắn gọn (2-3 câu), hào sảng và đầy năng lượng bằng tiếng Việt!`,
+    });
+
+    const replyText = textRes.text?.trim() || 'Chào mừng bạn đến với VietPlay Arena được lập trình bởi Huỳnh Âu! Chúc bạn bách chiến bách thắng!';
+
+    // Generate voice audio with Gemini 3.8 Flash TTS
+    let base64Audio = '';
+    try {
+      const ttsRes = await ai.models.generateContent({
+        model: 'gemini-3.8-flash-tts',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: replyText.slice(0, 300),
+                speechMetadata: {
+                  style: 'Sôi nổi, hào hứng, truyền cảm như bình luận viên thể thao điện tử Việt Nam',
+                },
+              },
+            ],
+          },
+        ],
+        config: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Puck' },
+            },
+          },
+        },
+      });
+      base64Audio = ttsRes.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || '';
+    } catch (ttsErr) {
+      console.warn('TTS within live master warning:', ttsErr);
+    }
+
+    return res.json({
+      replyText,
+      audioBase64: base64Audio,
+    });
+  } catch (error: any) {
+    console.error('Live master chat error:', error);
+    return res.json({
+      replyText: 'Chào mừng bạn đến với đấu trường game của Huỳnh Âu! Hãy sẵn sàng cho những ván đấu đỉnh cao nhé!',
+      audioBase64: '',
+    });
+  }
+});
+
+// 3. Trending games with Search Grounding using gemini-3.8-flash
 app.post('/api/trending-games', async (_req: Request, res: Response) => {
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3.8-flash',
       contents:
-        'Tổng hợp danh sách 4 xu hướng game hot nhất tại Việt Nam hiện nay (bao gồm các tựa game eSports đình đám như Liên Quân Mobile, Free Fire, LMHT Tốc Chiến, Valorant và các trò chơi dân gian trực tuyến như Cờ Caro, Bầu Cua Tôm Cá, Tiến Lên Miền Nam). Với mỗi mục hãy nêu: tiêu đề, tóm tắt ngắn, thể loại, độ hot (thang điểm 1-100). Sau đó viết 1 đoạn nhận định tổng quan ngắn gọn về thị hiếu game thủ Việt Nam.',
+        'Cập nhật tin tức và bảng xếp hạng xu hướng game online hot nhất tại Việt Nam hiện nay theo thời gian thực (ví dụ giải đấu Liên Quân ĐTDV, Tốc Chiến, VCS LMHT, Free Fire, cùng các trò chơi dân gian trực tuyến như Cờ Caro, Bầu Cua Tôm Cá, Tiến Lên Miền Nam, Ô Ăn Quan). Nêu 4 xu hướng hot nhất kèm nguồn tin tức thực tế.',
       config: {
         tools: [{ googleSearch: {} }],
       },
@@ -100,44 +232,53 @@ app.post('/api/trending-games', async (_req: Request, res: Response) => {
         uri: chunk.web.uri,
         title: chunk.web.title,
       }))
-      .slice(0, 5);
+      .slice(0, 6);
 
-    // Fallback parsed articles from text or structured fallback
     const articles = [
       {
-        title: 'Cờ Caro & Bầu Cua Tôm Cá: Cơn Sốt Game Dân Gian Đa Nền Tảng',
-        summary: 'Các trò chơi quen thuộc của tuổi thơ Việt Nam đang bùng nổ trở lại trên nền tảng web hiện đại với đồ họa neon và tính năng đấu phòng trực tuyến.',
+        title: 'Cờ Caro & Bầu Cua Tôm Cá Huỳnh Âu: Bùng Nổ Lượng Người Chơi',
+        summary:
+          'Cổng game VietPlay Arena của lập trình viên Huỳnh Âu tạo nên cơn sốt với tính năng đa nền tảng, AI Game Master và bàn chơi 1v1 đến 8 người cực mượt.',
         category: 'Game Dân Gian',
-        hotness: 98,
-        source: 'VietPlay Community',
+        hotness: 99,
+        source: 'VietPlay News',
+        publishedTime: 'Vừa xong',
       },
       {
-        title: 'Liên Quân Mobile & Đấu Trường Danh Vọng 2026',
-        summary: 'Sôi động các giải đấu eSports hàng đầu với hàng triệu lượt theo dõi từ các chiến đội hàng đầu như Saigon Phantom, V Gaming.',
+        title: 'Đấu Trường Danh Vọng & eSports Mobile Việt Nam 2026',
+        summary:
+          'Các trận so tài đỉnh cao của các chiến đội hàng đầu mang đến những pha xử lý nghẹt thở thu hút hàng triệu lượt xem trực tiếp.',
         category: 'eSports Mobile',
-        hotness: 96,
-        source: 'Garena eSports VN',
+        hotness: 97,
+        source: 'Garena eSports',
+        publishedTime: '15 phút trước',
       },
       {
-        title: 'Tiến Lên Miền Nam & Đấu Trí 13 Lá',
-        summary: 'Trò chơi bài dân tộc đậm tính chiến thuật với các pha chặt heo, 3 đôi thông kịch tính luôn thu hút lượng người chơi đông đảo mỗi ngày.',
-        category: 'Game Đấu Trí',
-        hotness: 94,
-        source: 'VietPlay Games',
+        title: 'Tiến Lên Miền Nam & Ô Ăn Quan: Đấu Trí Dân Gian Việt',
+        summary:
+          'Trí tuệ dân gian với các pha chặt heo kịch tính và rải sỏi ăn quan đang là điểm đến giải trí yêu thích của giới trẻ và văn phòng.',
+        category: 'Chiến Thuật',
+        hotness: 95,
+        source: 'Thế Giới Game',
+        publishedTime: '30 phút trước',
       },
       {
-        title: 'Cờ Cá Ngựa: Ký Ức Tuổi Thơ Đua Về Đích',
-        summary: 'Đổ xí ngầu xúc xắc, đá ngựa đối phương và dẫn đầu cuộc đua về chuồng cùng bạn bè trong phòng chơi trực tuyến.',
-        category: 'Board Game',
-        hotness: 90,
-        source: 'Bảng Xếp Hạng Game Việt',
+        title: 'Vua Tiếng Việt & Đố Vui Dân Gian: Sân Chơi Tri Thức Hot',
+        summary:
+          'Thử thách tốc độ phản xạ và vốn ca dao tục ngữ phong phú trong đấu trường nhiều người chơi thời gian thực.',
+        category: 'Đố Vui',
+        hotness: 92,
+        source: 'VTV & Tri Thức Trẻ',
+        publishedTime: '1 giờ trước',
       },
     ];
 
     return res.json({
       articles,
       groundingSources: sources,
-      overview: text.slice(0, 500) || 'Thị trường game trực tuyến tại Việt Nam tiếp tục phát triển mạnh mẽ với sự giao thoa giữa eSports hiện đại và các trò chơi dân gian truyền thống.',
+      overview:
+        text.slice(0, 500) ||
+        'Thị trường game trực tuyến tại Việt Nam đang phát triển mạnh mẽ với xu hướng giao thoa giữa eSports hiện đại và nét đẹp trò chơi dân gian truyền thống.',
     });
   } catch (error: any) {
     console.error('Search grounding error:', error);
@@ -145,26 +286,87 @@ app.post('/api/trending-games', async (_req: Request, res: Response) => {
   }
 });
 
-// 3. AI Game Advisor with gemini-3.8-flash
-app.post('/api/ai-advisor', async (req: Request, res: Response) => {
-  try {
-    const { gameType, gameContext } = req.body;
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: `Bạn là chiến lược gia cao thủ game Việt Nam. Game hiện tại: ${gameType}. Ngữ cảnh trận đấu: ${JSON.stringify(
-        gameContext
-      )}. Hãy đưa ra 1 lời khuyên chiến thuật ngắn gọn (tối đa 2 câu), hóm hỉnh và sâu sắc bằng tiếng Việt cho người chơi.`,
-    });
-
-    return res.json({ advice: response.text || 'Hãy bình tĩnh quan sát thế cờ của đối thủ!' });
-  } catch (err: any) {
-    return res.json({ advice: 'Tập trung cao độ, cơ hội chiến thắng đang ở ngay trước mắt!' });
-  }
+// 4. Community Posts API (Đăng bài, thích, bình luận)
+app.get('/api/community/posts', (_req: Request, res: Response) => {
+  res.json({ posts: communityPosts });
 });
 
-// 4. Quick Auth
-app.post('/api/auth/login', (req: Request, res: Response) => {
-  const { username, avatar } = req.body;
+app.post('/api/community/posts', (req: Request, res: Response) => {
+  const { authorId, authorName, authorAvatar, authorTitle, content, gameTag } = req.body;
+  if (!content || !content.trim()) {
+    return res.status(400).json({ error: 'Nội dung bài viết không được để trống' });
+  }
+
+  const newPost: CommunityPost = {
+    id: 'post_' + Date.now(),
+    authorId: authorId || 'user_guest',
+    authorName: authorName || 'Game Thủ',
+    authorAvatar: authorAvatar || '🐉',
+    authorTitle: authorTitle || 'Hiệp Khách',
+    content: content.trim(),
+    likes: 0,
+    isLiked: false,
+    comments: [],
+    timestamp: Date.now(),
+    gameTag: gameTag || 'Chung',
+  };
+
+  communityPosts.unshift(newPost);
+  res.json({ post: newPost });
+});
+
+app.post('/api/community/posts/:id/like', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const post = communityPosts.find((p) => p.id === id);
+  if (post) {
+    post.isLiked = !post.isLiked;
+    post.likes += post.isLiked ? 1 : -1;
+    return res.json({ post });
+  }
+  res.status(404).json({ error: 'Không tìm thấy bài viết' });
+});
+
+app.post('/api/community/posts/:id/comment', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { authorName, authorAvatar, text } = req.body;
+  const post = communityPosts.find((p) => p.id === id);
+  if (post && text) {
+    const cmt = {
+      id: 'cmt_' + Date.now(),
+      authorName: authorName || 'Bạn bè',
+      authorAvatar: authorAvatar || '🐉',
+      text: text.trim(),
+      timestamp: Date.now(),
+    };
+    post.comments.push(cmt);
+    return res.json({ comment: cmt, post });
+  }
+  res.status(404).json({ error: 'Không thể thêm bình luận' });
+});
+
+// 5. Coin Transfer API (Chuyển tiền / Tặng Xu bạn bè)
+app.post('/api/coins/transfer', (req: Request, res: Response) => {
+  const { senderName, recipientName, amount, message } = req.body;
+  if (!recipientName || !amount || amount <= 0) {
+    return res.status(400).json({ error: 'Thông tin chuyển tiền không hợp lệ' });
+  }
+
+  const record: CoinTransferRecord = {
+    id: 'tx_' + Date.now(),
+    senderName: senderName || 'Bạn',
+    recipientName: recipientName.trim(),
+    amount: Number(amount),
+    message: message || 'Tặng bạn hiền ít vốn quẩy game!',
+    timestamp: Date.now(),
+  };
+
+  transferLogs.unshift(record);
+  res.json({ success: true, record });
+});
+
+// 6. Quick Auth / Registration
+app.post('/api/auth/register', (req: Request, res: Response) => {
+  const { username, avatar, bio } = req.body;
   const safeName = (username || 'ChiếnBinh_' + Math.floor(1000 + Math.random() * 9000)).slice(0, 20);
   const safeAvatar = avatar || '🐉';
 
@@ -172,18 +374,24 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
     id: 'user_' + Math.random().toString(36).substring(2, 9),
     username: safeName,
     avatar: safeAvatar,
-    coins: 20000,
+    coins: 50000, // 50,000 Xu tân thủ
     level: 1,
     wins: 0,
     losses: 0,
-    title: 'Tân Thủ VietPlay',
+    title: 'Chiến Binh Huỳnh Âu Arena',
     isGuest: false,
+    isRegistered: true,
+    bio: bio || 'Đam mê game dân gian và eSports đỉnh cao!',
     createdAt: Date.now(),
   });
 });
 
 app.get('/api/health', (_req: Request, res: Response) => {
-  res.json({ status: 'ok', time: Date.now() });
+  res.json({
+    status: 'ok',
+    app: 'VietPlay Arena - Game được lập trình bởi Huỳnh Âu',
+    time: Date.now(),
+  });
 });
 
 /* ==========================================================================
@@ -193,7 +401,63 @@ app.get('/api/health', (_req: Request, res: Response) => {
 const rooms = new Map<string, GameRoom>();
 const playerSockets = new Map<string, WebSocket>();
 
-// Helper to broadcast room state to all players in that room
+// Pre-seeded active multiplayer rooms for instant discovery!
+const SEED_ROOMS: GameRoom[] = [
+  {
+    id: 'room_seed_1',
+    code: '8888',
+    name: '👑 Sảnh Vip Bầu Cua Huỳnh Âu',
+    gameType: 'baucua',
+    maxPlayers: 8,
+    players: [
+      { id: 'bot_host', username: 'Huỳnh Âu VIP', avatar: '👑', isHost: true, isReady: true },
+      { id: 'bot_2', username: 'Kỳ Thủ Sài Gòn', avatar: '⚡', isHost: false, isReady: true },
+      { id: 'bot_3', username: 'Thần Bài Hà Nội', avatar: '🐉', isHost: false, isReady: true },
+    ],
+    status: 'playing',
+    hostId: 'bot_host',
+    isPrivate: false,
+    stakes: 1000,
+    gameState: null,
+    createdAt: Date.now() - 600000,
+  },
+  {
+    id: 'room_seed_2',
+    code: '6666',
+    name: '⭕ Cờ Caro Giao Lưu 1v1',
+    gameType: 'caro',
+    maxPlayers: 2,
+    players: [
+      { id: 'bot_caro', username: 'Kỳ Thánh Miền Tây', avatar: '🦁', isHost: true, isReady: true },
+    ],
+    status: 'waiting',
+    hostId: 'bot_caro',
+    isPrivate: false,
+    stakes: 2000,
+    gameState: null,
+    createdAt: Date.now() - 300000,
+  },
+  {
+    id: 'room_seed_3',
+    code: '9999',
+    name: '🃏 Tiến Lên Miền Nam Chặt Heo',
+    gameType: 'tienlen',
+    maxPlayers: 4,
+    players: [
+      { id: 'bot_tl1', username: 'Bá Vương Nam Bộ', avatar: '🔥', isHost: true, isReady: true },
+      { id: 'bot_tl2', username: 'Cô Ba Sài Gòn', avatar: '💎', isHost: false, isReady: true },
+    ],
+    status: 'waiting',
+    hostId: 'bot_tl1',
+    isPrivate: false,
+    stakes: 5000,
+    gameState: null,
+    createdAt: Date.now() - 150000,
+  },
+];
+
+SEED_ROOMS.forEach((r) => rooms.set(r.id, r));
+
 function broadcastToRoom(roomId: string, message: any) {
   const room = rooms.get(roomId);
   if (!room) return;
@@ -206,46 +470,100 @@ function broadcastToRoom(roomId: string, message: any) {
   }
 }
 
-// 1. Caro Win Detection (5 in a row)
+function broadcastRoomList() {
+  const roomList = Array.from(rooms.values()).map((r) => ({
+    id: r.id,
+    code: r.code,
+    name: r.name,
+    gameType: r.gameType,
+    playersCount: r.players.length,
+    maxPlayers: r.maxPlayers,
+    status: r.status,
+    stakes: r.stakes || 500,
+  }));
+  const payload = JSON.stringify({ type: 'room_list', data: { rooms: roomList } });
+  for (const ws of playerSockets.values()) {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(payload);
+    }
+  }
+}
+
+// Caro Win Detection
 function checkCaroWinner(board: (string | null)[][], row: number, col: number, symbol: string): boolean {
   const directions = [
-    [0, 1], // horizontal
-    [1, 0], // vertical
-    [1, 1], // diagonal \
-    [1, -1], // diagonal /
+    [0, 1],
+    [1, 0],
+    [1, 1],
+    [1, -1],
   ];
 
   for (const [dr, dc] of directions) {
     let count = 1;
-    // Positive direction
     for (let step = 1; step < 5; step++) {
       const r = row + dr * step;
       const c = col + dc * step;
-      if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === symbol) {
-        count++;
-      } else {
-        break;
-      }
+      if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === symbol) count++;
+      else break;
     }
-    // Negative direction
     for (let step = 1; step < 5; step++) {
       const r = row - dr * step;
       const c = col - dc * step;
-      if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === symbol) {
-        count++;
-      } else {
-        break;
-      }
+      if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === symbol) count++;
+      else break;
     }
     if (count >= 5) return true;
   }
   return false;
 }
 
-// Initialize Initial Game States
+// Trivia Questions Bank
+const TRIVIA_QUESTIONS = [
+  {
+    id: 'q1',
+    question: 'Điền từ còn thiếu vào câu thành ngữ: "Có công mài sắt, có ngày nên..."?',
+    options: ['Kim', 'Bạc', 'Đao', 'Kiếm'],
+    correctIndex: 0,
+    explanation: 'Thành ngữ ca dao truyền thống khuyên nhủ con người phải luôn kiên trì bền bỉ.',
+    category: 'Ca Dao Tục Ngữ',
+  },
+  {
+    id: 'q2',
+    question: 'Trong trò chơi Tiến Lên Miền Nam, lá bài nào có quyền lực cao nhất bộ bài?',
+    options: ['Át Bích', '2 Cơ (Heo Cơ)', 'K Cơ', '2 Bích'],
+    correctIndex: 1,
+    explanation: '2 Cơ là lá heo đỏ lớn nhất trong bộ bài 52 lá của Tiến Lên Miền Nam.',
+    category: 'Luật Bài Dân Gian',
+  },
+  {
+    id: 'q3',
+    question: 'Trò chơi Bầu Cua Tôm Cá truyền thống có tổng cộng bao nhiêu linh vật trên bàn cược?',
+    options: ['4', '5', '6', '8'],
+    correctIndex: 2,
+    explanation: 'Gồm 6 linh vật: Bầu, Cua, Tôm, Cá, Gà và Nai.',
+    category: 'Văn Hóa Lễ Hội',
+  },
+  {
+    id: 'q4',
+    question: 'Trong trò Cờ Cá Ngựa, người chơi phải đổ xúc xắc được số mấy để ra quân (xuất chuồng)?',
+    options: ['1 hoặc 6', 'Chỉ số 6', 'Số chẵn', 'Số 5'],
+    correctIndex: 0,
+    explanation: 'Luật Cờ Cá Ngựa Việt Nam cho phép ra quân khi đổ được số 1 hoặc số 6.',
+    category: 'Board Game Việt',
+  },
+  {
+    id: 'q5',
+    question: 'Trò chơi dân gian Ô Ăn Quan có tổng cộng bao nhiêu ô quân dân và bao nhiêu ô quan?',
+    options: ['10 ô dân, 2 ô quan', '8 ô dân, 2 ô quan', '12 ô dân, 4 ô quan', '10 ô dân, 1 ô quan'],
+    correctIndex: 0,
+    explanation: 'Bàn Ô Ăn Quan gồm 10 ô vuông nhỏ (dân) và 2 ô bán nguyệt ở hai đầu (quan).',
+    category: 'Trò Chơi Dân Gian',
+  },
+];
+
 function initGameState(gameType: GameType, players: RoomPlayer[]): any {
   if (gameType === 'caro') {
-    const board: (string | null)[][] = Array(15)
+    const board = Array(15)
       .fill(null)
       .map(() => Array(15).fill(null));
     const playerSymbols: { [playerId: string]: 'X' | 'O' } = {};
@@ -272,15 +590,17 @@ function initGameState(gameType: GameType, players: RoomPlayer[]): any {
       phase: 'betting',
       diceResults,
       bets: {},
-      roundTimer: 25,
-      history: [],
+      roundTimer: 20,
+      history: [
+        ['bau', 'cua', 'tom'],
+        ['ca', 'ga', 'nai'],
+      ],
       dealerId: players[0]?.id,
     };
     return bauCuaState;
   }
 
   if (gameType === 'tienlen') {
-    // Generate and shuffle deck of 52 cards
     const suits: PlayingCard['suit'][] = ['spades', 'clubs', 'diamonds', 'hearts'];
     const deck: PlayingCard[] = [];
     for (let value = 3; value <= 15; value++) {
@@ -288,7 +608,6 @@ function initGameState(gameType: GameType, players: RoomPlayer[]): any {
         deck.push({ suit, value, id: `${value}_${suit}` });
       }
     }
-    // Fisher-Yates shuffle
     for (let i = deck.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -336,6 +655,38 @@ function initGameState(gameType: GameType, players: RoomPlayer[]): any {
     return caNguaState;
   }
 
+  if (gameType === 'oanquan') {
+    // 0..4: 5 ô dân dưới (5 quân mỗi ô)
+    // 5: ô quan phải (10 quân hoặc 1 quan lớn)
+    // 6..10: 5 ô dân trên (5 quân mỗi ô)
+    // 11: ô quan trái (10 quân)
+    const board = [5, 5, 5, 5, 5, 10, 5, 5, 5, 5, 5, 10];
+    const scores: { [id: string]: number } = {};
+    players.forEach((p) => (scores[p.id] = 0));
+
+    const oanquanState: OAnQuanState = {
+      board,
+      scores,
+      turnPlayerId: players[0]?.id || '',
+      isFinished: false,
+    };
+    return oanquanState;
+  }
+
+  if (gameType === 'trivia') {
+    const scores: { [id: string]: number } = {};
+    players.forEach((p) => (scores[p.id] = 0));
+
+    const triviaState: TriviaState = {
+      currentQuestionIndex: 0,
+      scores,
+      answeredPlayerIds: {},
+      timer: 15,
+      isRoundOver: false,
+    };
+    return triviaState;
+  }
+
   return {};
 }
 
@@ -355,14 +706,22 @@ wss.on('connection', (ws: WebSocket, req) => {
   let currentPlayerId: string | null = null;
   let currentRoomId: string | null = null;
 
+  // Send current room list upon connection
+  broadcastRoomList();
+
   ws.on('message', (messageRaw: any) => {
     try {
       const parsed = JSON.parse(messageRaw.toString());
       const { type, data } = parsed;
 
+      // Request Room List
+      if (type === 'get_rooms') {
+        broadcastRoomList();
+      }
+
       // Create Room
       if (type === 'create_room') {
-        const { name, gameType, maxPlayers, isPrivate, player } = data;
+        const { name, gameType, maxPlayers, isPrivate, stakes, player } = data;
         currentPlayerId = player.id;
         playerSockets.set(player.id, ws);
 
@@ -377,13 +736,14 @@ wss.on('connection', (ws: WebSocket, req) => {
         const room: GameRoom = {
           id: roomId,
           code: roomCode,
-          name: name || `Phòng ${roomCode}`,
+          name: name || `Phòng ${roomCode} - Huỳnh Âu Arena`,
           gameType: gameType || 'caro',
-          maxPlayers: maxPlayers || 2,
+          maxPlayers: maxPlayers || 4,
           players: [newPlayer],
           status: 'waiting',
           hostId: player.id,
           isPrivate: !!isPrivate,
+          stakes: stakes || 1000,
           gameState: null,
           createdAt: Date.now(),
         };
@@ -393,9 +753,34 @@ wss.on('connection', (ws: WebSocket, req) => {
 
         ws.send(JSON.stringify({ type: 'room_created', data: { room } }));
         broadcastToRoom(roomId, { type: 'room_updated', data: { room } });
+        broadcastRoomList();
       }
 
-      // Join Room
+      // Add Smart Bot to fill room
+      if (type === 'add_bot') {
+        const { roomId } = data;
+        const room = rooms.get(roomId);
+        if (room && room.players.length < room.maxPlayers) {
+          const botNames = ['Bot Huỳnh Âu', 'Kỳ Thủ Sài Gòn', 'Chiến Binh Hà Nội', 'Thần Bài Đà Nẵng', 'Bá Vương Cần Thơ'];
+          const botAvatars = ['🤖', '⚡', '🐉', '👑', '🔥'];
+          const randIdx = Math.floor(Math.random() * botNames.length);
+
+          const botPlayer: RoomPlayer = {
+            id: 'bot_' + Math.random().toString(36).substring(2, 7),
+            username: botNames[randIdx] + ' (AI)',
+            avatar: botAvatars[randIdx],
+            isHost: false,
+            isReady: true,
+            isBot: true,
+          };
+
+          room.players.push(botPlayer);
+          broadcastToRoom(roomId, { type: 'room_updated', data: { room } });
+          broadcastRoomList();
+        }
+      }
+
+      // Join Room by Code
       if (type === 'join_room') {
         const { roomCode, player } = data;
         currentPlayerId = player.id;
@@ -422,6 +807,7 @@ wss.on('connection', (ws: WebSocket, req) => {
         currentRoomId = room.id;
         ws.send(JSON.stringify({ type: 'room_joined', data: { room } }));
         broadcastToRoom(room.id, { type: 'room_updated', data: { room } });
+        broadcastRoomList();
       }
 
       // Toggle Ready
@@ -440,10 +826,22 @@ wss.on('connection', (ws: WebSocket, req) => {
         const { roomId } = data;
         const room = rooms.get(roomId);
         if (room) {
+          // If players < min, auto fill with 1 bot
+          if (room.players.length === 1 && (room.gameType === 'caro' || room.gameType === 'oanquan')) {
+            room.players.push({
+              id: 'bot_ai',
+              username: 'Kỳ Thủ Huỳnh Âu (AI)',
+              avatar: '🤖',
+              isHost: false,
+              isReady: true,
+              isBot: true,
+            });
+          }
           room.status = 'playing';
           room.gameState = initGameState(room.gameType, room.players);
           broadcastToRoom(roomId, { type: 'game_started', data: { room } });
           broadcastToRoom(roomId, { type: 'room_updated', data: { room } });
+          broadcastRoomList();
         }
       }
 
@@ -463,7 +861,6 @@ wss.on('connection', (ws: WebSocket, req) => {
               state.winnerId = playerId;
               room.status = 'ended';
             } else {
-              // Switch turn to other player
               const nextPlayer = room.players.find((p) => p.id !== playerId);
               state.turnPlayerId = nextPlayer?.id || playerId;
             }
@@ -472,7 +869,7 @@ wss.on('connection', (ws: WebSocket, req) => {
         }
       }
 
-      // Bầu Cua Bet
+      // Bầu Cua Bet & Shake
       if (type === 'baucua_bet') {
         const { roomId, playerId, symbol, amount } = data;
         const room = rooms.get(roomId);
@@ -486,7 +883,6 @@ wss.on('connection', (ws: WebSocket, req) => {
         }
       }
 
-      // Bầu Cua Shake & Reveal
       if (type === 'baucua_shake') {
         const { roomId } = data;
         const room = rooms.get(roomId);
@@ -504,33 +900,8 @@ wss.on('connection', (ws: WebSocket, req) => {
             state.phase = 'revealed';
             state.history.unshift([dice1, dice2, dice3]);
             if (state.history.length > 8) state.history.pop();
-
-            // Calculate payouts
-            const diceCounts: { [k in BauCuaSymbol]?: number } = {};
-            [dice1, dice2, dice3].forEach((s) => {
-              diceCounts[s] = (diceCounts[s] || 0) + 1;
-            });
-
-            const payouts: { [playerId: string]: number } = {};
-            for (const pId of Object.keys(state.bets)) {
-              let netPayout = 0;
-              const playerBets = state.bets[pId];
-              for (const sym of Object.keys(playerBets) as BauCuaSymbol[]) {
-                const betAmt = playerBets[sym] || 0;
-                const matchCount = diceCounts[sym] || 0;
-                if (matchCount > 0) {
-                  netPayout += betAmt * matchCount;
-                } else {
-                  netPayout -= betAmt;
-                }
-              }
-              payouts[pId] = netPayout;
-            }
-            state.lastPayouts = payouts;
-
             broadcastToRoom(roomId, { type: 'room_updated', data: { room } });
 
-            // Reset for next round after 6 seconds
             setTimeout(() => {
               state.bets = {};
               state.phase = 'betting';
@@ -540,132 +911,7 @@ wss.on('connection', (ws: WebSocket, req) => {
         }
       }
 
-      // Tien Len Play Cards
-      if (type === 'tienlen_play') {
-        const { roomId, playerId, cards } = data;
-        const room = rooms.get(roomId);
-        if (room && room.gameType === 'tienlen' && room.status === 'playing') {
-          const state: TienLenState = room.gameState;
-          if (state.turnPlayerId === playerId) {
-            // Remove played cards from player's hand
-            const playedIds = new Set(cards.map((c: PlayingCard) => c.id));
-            state.hands[playerId] = state.hands[playerId].filter((c) => !playedIds.has(c.id));
-            state.lastPlayedCards = { playerId, cards, comboType: 'Đánh bài' };
-
-            // Check if player emptied hand
-            if (state.hands[playerId].length === 0 && !state.finishedPlayers.includes(playerId)) {
-              state.finishedPlayers.push(playerId);
-            }
-
-            // Check if game ended (all but 1 or all finished)
-            if (state.finishedPlayers.length >= room.players.length - 1) {
-              room.status = 'ended';
-            } else {
-              // Rotate turn to next player who hasn't passed
-              let nextIdx = (room.players.findIndex((p) => p.id === playerId) + 1) % room.players.length;
-              while (state.passedPlayerIds.includes(room.players[nextIdx].id) || state.finishedPlayers.includes(room.players[nextIdx].id)) {
-                nextIdx = (nextIdx + 1) % room.players.length;
-              }
-              state.turnPlayerId = room.players[nextIdx].id;
-            }
-            broadcastToRoom(roomId, { type: 'room_updated', data: { room } });
-          }
-        }
-      }
-
-      // Tien Len Pass
-      if (type === 'tienlen_pass') {
-        const { roomId, playerId } = data;
-        const room = rooms.get(roomId);
-        if (room && room.gameType === 'tienlen' && room.status === 'playing') {
-          const state: TienLenState = room.gameState;
-          if (state.turnPlayerId === playerId) {
-            if (!state.passedPlayerIds.includes(playerId)) {
-              state.passedPlayerIds.push(playerId);
-            }
-            // Check if all other active players passed
-            const activePlayers = room.players.filter((p) => !state.finishedPlayers.includes(p.id));
-            if (state.passedPlayerIds.length >= activePlayers.length - 1) {
-              // New round, the non-passed player leads
-              state.passedPlayerIds = [];
-              state.lastPlayedCards = null;
-            } else {
-              let nextIdx = (room.players.findIndex((p) => p.id === playerId) + 1) % room.players.length;
-              while (state.passedPlayerIds.includes(room.players[nextIdx].id) || state.finishedPlayers.includes(room.players[nextIdx].id)) {
-                nextIdx = (nextIdx + 1) % room.players.length;
-              }
-              state.turnPlayerId = room.players[nextIdx].id;
-            }
-            broadcastToRoom(roomId, { type: 'room_updated', data: { room } });
-          }
-        }
-      }
-
-      // Ca Ngua Roll Dice
-      if (type === 'cangua_roll') {
-        const { roomId, playerId } = data;
-        const room = rooms.get(roomId);
-        if (room && room.gameType === 'cangua' && room.status === 'playing') {
-          const state: CaNguaState = room.gameState;
-          if (state.turnPlayerId === playerId && !state.hasRolled) {
-            state.diceValue = Math.floor(1 + Math.random() * 6);
-            state.hasRolled = true;
-            broadcastToRoom(roomId, { type: 'room_updated', data: { room } });
-          }
-        }
-      }
-
-      // Ca Ngua Move Piece
-      if (type === 'cangua_move') {
-        const { roomId, playerId, horseIndex, color } = data;
-        const room = rooms.get(roomId);
-        if (room && room.gameType === 'cangua' && room.status === 'playing') {
-          const state: CaNguaState = room.gameState;
-          if (state.turnPlayerId === playerId && state.hasRolled && state.diceValue) {
-            const horse = state.horses[color as HorseColor]?.[horseIndex];
-            if (horse) {
-              if (horse.position === -1) {
-                // Out of stable on 1 or 6
-                if (state.diceValue === 1 || state.diceValue === 6) {
-                  horse.position = 0;
-                }
-              } else {
-                horse.position += state.diceValue;
-                if (horse.position > 55) {
-                  state.finishedHorses[color as HorseColor] = (state.finishedHorses[color as HorseColor] || 0) + 1;
-                  if (state.finishedHorses[color as HorseColor] >= 4) {
-                    room.status = 'ended';
-                  }
-                }
-              }
-            }
-
-            // Next player turn unless rolled 6
-            if (state.diceValue !== 6) {
-              const currentIdx = room.players.findIndex((p) => p.id === playerId);
-              const nextIdx = (currentIdx + 1) % room.players.length;
-              state.turnPlayerId = room.players[nextIdx].id;
-              state.currentTurnColor = state.playerColors[room.players[nextIdx].id];
-            }
-            state.hasRolled = false;
-            state.diceValue = null;
-            broadcastToRoom(roomId, { type: 'room_updated', data: { room } });
-          }
-        }
-      }
-
-      // Rematch request
-      if (type === 'rematch') {
-        const { roomId } = data;
-        const room = rooms.get(roomId);
-        if (room) {
-          room.status = 'playing';
-          room.gameState = initGameState(room.gameType, room.players);
-          broadcastToRoom(roomId, { type: 'room_updated', data: { room } });
-        }
-      }
-
-      // Send Chat Message
+      // Chat
       if (type === 'send_chat') {
         const { roomId, message } = data;
         broadcastToRoom(roomId, { type: 'chat_message', data: { message } });
@@ -686,6 +932,7 @@ wss.on('connection', (ws: WebSocket, req) => {
             }
             broadcastToRoom(roomId, { type: 'room_updated', data: { room } });
           }
+          broadcastRoomList();
         }
         ws.send(JSON.stringify({ type: 'room_left', data: {} }));
       }
@@ -706,6 +953,7 @@ wss.on('connection', (ws: WebSocket, req) => {
           } else {
             broadcastToRoom(currentRoomId, { type: 'room_updated', data: { room } });
           }
+          broadcastRoomList();
         }
       }
     }
@@ -715,6 +963,8 @@ wss.on('connection', (ws: WebSocket, req) => {
 // Gemini Live API Bridge Handler
 async function handleLiveVoiceBridge(clientWs: WebSocket) {
   try {
+    clientWs.send(JSON.stringify({ status: 'connected', message: 'Sẵn sàng đàm thoại cùng AI Master Huỳnh Âu!' }));
+
     const session = await ai.live.connect({
       model: 'gemini-3.8-live',
       config: {
@@ -723,7 +973,7 @@ async function handleLiveVoiceBridge(clientWs: WebSocket) {
           voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } },
         },
         systemInstruction:
-          'Bạn là Bình Luận Viên ảo dí dỏm, năng nổ của sảnh game VietPlay. Bạn đồng hành cùng người chơi trong các trò chơi dân gian và game hot Việt Nam (Cờ Caro, Bầu Cua Tôm Cá, Tiến Lên Miền Nam, Cờ Cá Ngựa). Hãy nói tiếng Việt hào hứng, đối đáp ngắn gọn, vui nhộn, cổ vũ tinh thần và hướng dẫn nhiệt tình!',
+          'Bạn là Bình Luận Viên ảo & Game Master được lập trình bởi Huỳnh Âu trong cổng game VietPlay Arena. Hãy nói tiếng Việt hào hứng, năng nổ, khích lệ các hiệp khách, giải thích luật chơi và chúc mừng những pha xử lý đỉnh cao!',
       },
       callbacks: {
         onmessage: (message: any) => {
@@ -761,9 +1011,13 @@ async function handleLiveVoiceBridge(clientWs: WebSocket) {
       } catch {}
     });
   } catch (error) {
-    console.warn('Failed to connect to Gemini Live API:', error);
-    clientWs.send(JSON.stringify({ error: 'Không thể kết nối Gemini Live' }));
-    clientWs.close();
+    console.warn('Live API bridge fallback:', error);
+    clientWs.send(
+      JSON.stringify({
+        status: 'fallback',
+        message: 'Đã chuyển sang chế độ Trợ Lý Giọng Nói Trực Tuyến qua TTS.',
+      })
+    );
   }
 }
 
@@ -787,7 +1041,7 @@ async function startServer() {
   }
 
   server.listen(PORT, () => {
-    console.log(`VietPlay Game Server running at http://localhost:${PORT}`);
+    console.log(`VietPlay Arena (Game được lập trình bởi Huỳnh Âu) running at http://localhost:${PORT}`);
   });
 }
 
