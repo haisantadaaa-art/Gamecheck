@@ -261,33 +261,35 @@ export const TienLenGame: React.FC<TienLenGameProps> = ({ room, currentPlayer, o
               )}
             </div>
 
-            {/* 13 Hand Cards with overlap */}
-            <div className="flex items-center justify-center -space-x-5 sm:-space-x-6 overflow-x-auto max-w-full px-2 py-2">
-              {myHand.map((c) => {
-                const suit = SUIT_ICONS[c.suit];
-                const isSelected = selectedCardIds.has(c.id);
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => toggleSelectCard(c.id)}
-                    className={`w-12 h-18 sm:w-16 sm:h-24 bg-white rounded-xl shadow-xl border-2 transition-transform cursor-pointer select-none flex flex-col justify-between p-1.5 ${
-                      isSelected
-                        ? '-translate-y-5 border-amber-500 ring-2 ring-amber-400 z-10'
-                        : 'border-slate-300 hover:-translate-y-2'
-                    }`}
-                  >
-                    <div className={`font-black text-xs sm:text-sm ${suit.color}`}>
-                      {VALUE_LABELS[c.value]}
-                    </div>
-                    <div className={`text-xl sm:text-3xl text-center ${suit.color}`}>
-                      {suit.icon}
-                    </div>
-                    <div className={`font-black text-xs sm:text-sm self-end ${suit.color}`}>
-                      {VALUE_LABELS[c.value]}
-                    </div>
-                  </button>
-                );
-              })}
+            {/* 13 Hand Cards with overlap & mobile touch scroll */}
+            <div className="w-full max-w-full overflow-x-auto pb-4 scrollbar-none">
+              <div className="min-w-max flex items-center justify-center -space-x-4 sm:-space-x-6 px-4 py-2 mx-auto">
+                {myHand.map((c) => {
+                  const suit = SUIT_ICONS[c.suit];
+                  const isSelected = selectedCardIds.has(c.id);
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => toggleSelectCard(c.id)}
+                      className={`w-11 h-16 sm:w-16 sm:h-24 bg-white rounded-xl shadow-xl border-2 transition-transform cursor-pointer select-none flex flex-col justify-between p-1 sm:p-1.5 ${
+                        isSelected
+                          ? '-translate-y-4 sm:-translate-y-5 border-amber-500 ring-2 ring-amber-400 z-10'
+                          : 'border-slate-300 hover:-translate-y-2'
+                      }`}
+                    >
+                      <div className={`font-black text-[11px] sm:text-sm ${suit.color}`}>
+                        {VALUE_LABELS[c.value]}
+                      </div>
+                      <div className={`text-base sm:text-3xl text-center ${suit.color}`}>
+                        {suit.icon}
+                      </div>
+                      <div className={`font-black text-[10px] sm:text-sm self-end ${suit.color}`}>
+                        {VALUE_LABELS[c.value]}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Action Buttons */}

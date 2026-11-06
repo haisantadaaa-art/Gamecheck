@@ -401,62 +401,6 @@ app.get('/api/health', (_req: Request, res: Response) => {
 const rooms = new Map<string, GameRoom>();
 const playerSockets = new Map<string, WebSocket>();
 
-// Pre-seeded active multiplayer rooms for instant discovery!
-const SEED_ROOMS: GameRoom[] = [
-  {
-    id: 'room_seed_1',
-    code: '8888',
-    name: '👑 Sảnh Vip Bầu Cua Huỳnh Âu',
-    gameType: 'baucua',
-    maxPlayers: 8,
-    players: [
-      { id: 'bot_host', username: 'Huỳnh Âu VIP', avatar: '👑', isHost: true, isReady: true },
-      { id: 'bot_2', username: 'Kỳ Thủ Sài Gòn', avatar: '⚡', isHost: false, isReady: true },
-      { id: 'bot_3', username: 'Thần Bài Hà Nội', avatar: '🐉', isHost: false, isReady: true },
-    ],
-    status: 'playing',
-    hostId: 'bot_host',
-    isPrivate: false,
-    stakes: 1000,
-    gameState: null,
-    createdAt: Date.now() - 600000,
-  },
-  {
-    id: 'room_seed_2',
-    code: '6666',
-    name: '⭕ Cờ Caro Giao Lưu 1v1',
-    gameType: 'caro',
-    maxPlayers: 2,
-    players: [
-      { id: 'bot_caro', username: 'Kỳ Thánh Miền Tây', avatar: '🦁', isHost: true, isReady: true },
-    ],
-    status: 'waiting',
-    hostId: 'bot_caro',
-    isPrivate: false,
-    stakes: 2000,
-    gameState: null,
-    createdAt: Date.now() - 300000,
-  },
-  {
-    id: 'room_seed_3',
-    code: '9999',
-    name: '🃏 Tiến Lên Miền Nam Chặt Heo',
-    gameType: 'tienlen',
-    maxPlayers: 4,
-    players: [
-      { id: 'bot_tl1', username: 'Bá Vương Nam Bộ', avatar: '🔥', isHost: true, isReady: true },
-      { id: 'bot_tl2', username: 'Cô Ba Sài Gòn', avatar: '💎', isHost: false, isReady: true },
-    ],
-    status: 'waiting',
-    hostId: 'bot_tl1',
-    isPrivate: false,
-    stakes: 5000,
-    gameState: null,
-    createdAt: Date.now() - 150000,
-  },
-];
-
-SEED_ROOMS.forEach((r) => rooms.set(r.id, r));
 
 function broadcastToRoom(roomId: string, message: any) {
   const room = rooms.get(roomId);
@@ -690,6 +634,117 @@ function initGameState(gameType: GameType, players: RoomPlayer[]): any {
   return {};
 }
 
+// Pre-seeded active multiplayer rooms for all 6 games!
+const SEED_ROOMS: GameRoom[] = [
+  {
+    id: 'room_seed_1',
+    code: '8888',
+    name: '👑 Sảnh Vip Bầu Cua Huỳnh Âu',
+    gameType: 'baucua',
+    maxPlayers: 8,
+    players: [
+      { id: 'bot_host', username: 'Huỳnh Âu VIP', avatar: '👑', isHost: true, isReady: true, isBot: true },
+      { id: 'bot_2', username: 'Kỳ Thủ Sài Gòn', avatar: '⚡', isHost: false, isReady: true, isBot: true },
+      { id: 'bot_3', username: 'Thần Bài Hà Nội', avatar: '🐉', isHost: false, isReady: true, isBot: true },
+    ],
+    status: 'playing',
+    hostId: 'bot_host',
+    isPrivate: false,
+    stakes: 1000,
+    gameState: null,
+    createdAt: Date.now() - 600000,
+  },
+  {
+    id: 'room_seed_2',
+    code: '6666',
+    name: '⭕ Cờ Caro Giao Lưu 1v1',
+    gameType: 'caro',
+    maxPlayers: 2,
+    players: [
+      { id: 'bot_caro', username: 'Kỳ Thánh Miền Tây', avatar: '🦁', isHost: true, isReady: true, isBot: true },
+    ],
+    status: 'waiting',
+    hostId: 'bot_caro',
+    isPrivate: false,
+    stakes: 2000,
+    gameState: null,
+    createdAt: Date.now() - 300000,
+  },
+  {
+    id: 'room_seed_3',
+    code: '9999',
+    name: '🃏 Tiến Lên Miền Nam Chặt Heo',
+    gameType: 'tienlen',
+    maxPlayers: 4,
+    players: [
+      { id: 'bot_tl1', username: 'Bá Vương Nam Bộ', avatar: '🔥', isHost: true, isReady: true, isBot: true },
+      { id: 'bot_tl2', username: 'Cô Ba Sài Gòn', avatar: '💎', isHost: false, isReady: true, isBot: true },
+    ],
+    status: 'waiting',
+    hostId: 'bot_tl1',
+    isPrivate: false,
+    stakes: 5000,
+    gameState: null,
+    createdAt: Date.now() - 150000,
+  },
+  {
+    id: 'room_seed_4',
+    code: '5555',
+    name: '🪨 Ô Ăn Quan Đấu Trí Dân Gian',
+    gameType: 'oanquan',
+    maxPlayers: 2,
+    players: [
+      { id: 'bot_oq', username: 'Kỳ Thủ Sỏi Vàng', avatar: '🪨', isHost: true, isReady: true, isBot: true },
+    ],
+    status: 'waiting',
+    hostId: 'bot_oq',
+    isPrivate: false,
+    stakes: 1000,
+    gameState: null,
+    createdAt: Date.now() - 100000,
+  },
+  {
+    id: 'room_seed_5',
+    code: '7777',
+    name: '🏆 Đấu Trường Vua Tiếng Việt',
+    gameType: 'trivia',
+    maxPlayers: 4,
+    players: [
+      { id: 'bot_tr1', username: 'Trạng Quỳnh Đất Việt', avatar: '📜', isHost: true, isReady: true, isBot: true },
+      { id: 'bot_tr2', username: 'Thần Đồng Tiếng Việt', avatar: '⭐', isHost: false, isReady: true, isBot: true },
+    ],
+    status: 'waiting',
+    hostId: 'bot_tr1',
+    isPrivate: false,
+    stakes: 1000,
+    gameState: null,
+    createdAt: Date.now() - 80000,
+  },
+  {
+    id: 'room_seed_6',
+    code: '3333',
+    name: '🐴 Đua Cờ Cá Ngựa Sôi Động',
+    gameType: 'cangua',
+    maxPlayers: 4,
+    players: [
+      { id: 'bot_cg1', username: 'Kỵ Sĩ Hoàng Gia', avatar: '🐴', isHost: true, isReady: true, isBot: true },
+      { id: 'bot_cg2', username: 'Chiến Mã Bất Bại', avatar: '⚡', isHost: false, isReady: true, isBot: true },
+    ],
+    status: 'waiting',
+    hostId: 'bot_cg1',
+    isPrivate: false,
+    stakes: 2000,
+    gameState: null,
+    createdAt: Date.now() - 50000,
+  },
+];
+
+SEED_ROOMS.forEach((r) => {
+  r.gameState = initGameState(r.gameType, r.players);
+  rooms.set(r.id, r);
+});
+
+
 // Attach WebSocketServer
 const wss = new WebSocketServer({ server });
 
@@ -780,28 +835,72 @@ wss.on('connection', (ws: WebSocket, req) => {
         }
       }
 
-      // Join Room by Code
+      // Join Room by Code (Sanitized & Resilient)
       if (type === 'join_room') {
         const { roomCode, player } = data;
         currentPlayerId = player.id;
         playerSockets.set(player.id, ws);
 
-        const room = Array.from(rooms.values()).find((r) => r.code === roomCode);
-        if (!room) {
-          return ws.send(JSON.stringify({ type: 'error', data: { message: 'Không tìm thấy phòng chơi' } }));
+        const rawCode = (roomCode || '').toString().trim();
+        const cleanCode = rawCode.replace(/^[#\s]+/, '').toLowerCase();
+
+        let room = Array.from(rooms.values()).find(
+          (r) =>
+            r.code.toLowerCase() === cleanCode ||
+            r.code.toLowerCase() === rawCode.toLowerCase() ||
+            r.id.toLowerCase() === cleanCode ||
+            r.id.toLowerCase() === rawCode.toLowerCase()
+        );
+
+        // If not found, dynamically create an open room with this code so players/friends can join and play immediately!
+        if (!room && cleanCode.length >= 2) {
+          const newRoomId = 'room_' + cleanCode;
+          const newRoom: GameRoom = {
+            id: newRoomId,
+            code: cleanCode.toUpperCase(),
+            name: `Phòng Đấu #${cleanCode.toUpperCase()} - Huỳnh Âu Arena`,
+            gameType: 'caro',
+            maxPlayers: 2,
+            players: [
+              { id: 'bot_host', username: 'Kỳ Thủ Huỳnh Âu', avatar: '👑', isHost: true, isReady: true, isBot: true },
+            ],
+            status: 'waiting',
+            hostId: 'bot_host',
+            isPrivate: false,
+            stakes: 1000,
+            gameState: null,
+            createdAt: Date.now(),
+          };
+          newRoom.gameState = initGameState(newRoom.gameType, newRoom.players);
+          rooms.set(newRoomId, newRoom);
+          room = newRoom;
         }
 
-        if (room.players.length >= room.maxPlayers) {
-          return ws.send(JSON.stringify({ type: 'error', data: { message: 'Phòng đã đủ số lượng người chơi' } }));
+        if (!room) {
+          return ws.send(JSON.stringify({ type: 'error', data: { message: `Không tìm thấy phòng chơi #${roomCode}` } }));
         }
 
         const existingPlayer = room.players.find((p) => p.id === player.id);
         if (!existingPlayer) {
+          // If room is full, see if there is a bot that can be replaced by the human player
+          if (room.players.length >= room.maxPlayers) {
+            const botIdx = room.players.findIndex((p) => p.isBot);
+            if (botIdx !== -1) {
+              room.players.splice(botIdx, 1);
+            } else {
+              return ws.send(JSON.stringify({ type: 'error', data: { message: `Phòng #${room.code} đã đủ ${room.maxPlayers} người chơi!` } }));
+            }
+          }
           room.players.push({
             ...player,
-            isHost: false,
-            isReady: false,
+            isHost: room.players.length === 0,
+            isReady: true,
           });
+        }
+
+        // Ensure gameState is properly initialized
+        if (!room.gameState) {
+          room.gameState = initGameState(room.gameType, room.players);
         }
 
         currentRoomId = room.id;

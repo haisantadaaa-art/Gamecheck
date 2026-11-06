@@ -126,9 +126,13 @@ export const Lobby: React.FC<LobbyProps> = ({
 
   const handleJoinPin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!roomPin.trim()) return;
+    const clean = roomPin.trim().replace(/^[#\s]+/, '');
+    if (!clean) {
+      alert('Vui lòng nhập mã phòng hợp lệ (ví dụ: 8888, 6666, 9999)');
+      return;
+    }
     soundManager.playClick();
-    onJoinRoomByCode(roomPin.trim());
+    onJoinRoomByCode(clean);
   };
 
   const handlePlaySampleVoice = async (phrase: string) => {
@@ -196,20 +200,21 @@ export const Lobby: React.FC<LobbyProps> = ({
               <span>Tạo Phòng Mới</span>
             </button>
 
-            {/* Quick PIN Join Form */}
-            <form onSubmit={handleJoinPin} className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-2xl border border-slate-800">
+            {/* Quick PIN Join Form (Mobile Full-width friendly) */}
+            <form onSubmit={handleJoinPin} className="w-full sm:w-auto flex items-center gap-1.5 bg-slate-950/90 p-1.5 rounded-2xl border border-amber-500/30 shadow-md">
+              <span className="pl-2 text-amber-400 font-mono font-bold text-xs">#</span>
               <input
                 type="text"
-                placeholder="Nhập mã phòng (ví dụ 8888)"
+                placeholder="Mã phòng (ví dụ 8888)"
                 value={roomPin}
                 onChange={(e) => setRoomPin(e.target.value)}
-                maxLength={6}
-                className="w-44 px-3 py-2 bg-transparent text-slate-100 placeholder-slate-500 text-xs focus:outline-none font-semibold"
+                maxLength={8}
+                className="flex-1 sm:w-44 px-2 py-2 bg-transparent text-slate-100 placeholder-slate-500 text-xs focus:outline-none font-semibold font-mono"
               />
               <button
                 type="submit"
                 disabled={!roomPin.trim()}
-                className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold text-xs border border-amber-500/30 transition cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 disabled:opacity-40 text-slate-950 font-black text-xs transition cursor-pointer shadow-sm shrink-0"
               >
                 Vào Bàn
               </button>
@@ -333,11 +338,14 @@ export const Lobby: React.FC<LobbyProps> = ({
           <span className="text-xs text-slate-400">Tham gia phòng có sẵn hoặc so tài cùng cao thủ</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {[
             { code: '8888', name: '👑 Sảnh Vip Bầu Cua Huỳnh Âu', type: 'baucua' as GameType, players: '3/8', stakes: 1000 },
             { code: '6666', name: '⭕ Cờ Caro Giao Lưu 1v1', type: 'caro' as GameType, players: '1/2', stakes: 2000 },
             { code: '9999', name: '🃏 Tiến Lên Miền Nam Chặt Heo', type: 'tienlen' as GameType, players: '2/4', stakes: 5000 },
+            { code: '5555', name: '🪨 Ô Ăn Quan Đấu Trí Dân Gian', type: 'oanquan' as GameType, players: '1/2', stakes: 1000 },
+            { code: '7777', name: '🏆 Đấu Trường Vua Tiếng Việt', type: 'trivia' as GameType, players: '2/4', stakes: 1000 },
+            { code: '3333', name: '🐴 Đua Cờ Cá Ngựa Sôi Động', type: 'cangua' as GameType, players: '2/4', stakes: 2000 },
           ].map((r) => (
             <div
               key={r.code}
@@ -355,10 +363,13 @@ export const Lobby: React.FC<LobbyProps> = ({
               </div>
 
               <button
-                onClick={() => onJoinRoomByCode(r.code)}
-                className="mt-3 w-full py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs border border-amber-500/30 transition flex items-center justify-center gap-1 cursor-pointer"
+                onClick={() => {
+                  soundManager.playClick();
+                  onJoinRoomByCode(r.code);
+                }}
+                className="mt-3 w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs border border-amber-500/30 transition flex items-center justify-center gap-1 cursor-pointer"
               >
-                <span>Vào Ngay</span>
+                <span>Vào Chơi Ngay</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -518,26 +529,6 @@ export const Lobby: React.FC<LobbyProps> = ({
         </div>
       </section>
 
-      {/* GitHub & Vercel Custom Domain Banner */}
-      <section className="p-6 rounded-3xl bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950/40 border border-emerald-500/30 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1">
-            <Sparkles className="w-4 h-4" />
-            <span>Sẵn Sàng Cho Tên Miền Riêng Của Bạn</span>
-          </div>
-          <h4 className="text-base font-bold text-white">Dự án đã đưa lên GitHub haisantadaaa-art/Gamecheck</h4>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Đầy đủ file vercel.json, Vite build siêu tốc, chứng chỉ SSL miễn phí và kết nối domain 1-click.
-          </p>
-        </div>
-
-        <button
-          onClick={onOpenDeployGuide}
-          className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition cursor-pointer shadow-md whitespace-nowrap"
-        >
-          Xem Hướng Dẫn Vercel
-        </button>
-      </section>
     </div>
   );
 };

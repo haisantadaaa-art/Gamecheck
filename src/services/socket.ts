@@ -161,6 +161,39 @@ class GameSocketClient {
       this.emitLocal('room_created', { room });
       this.emitLocal('room_updated', { room });
     }
+
+    if (type === 'join_room') {
+      const cleanCode = (data.roomCode || '').toString().trim().replace(/^[#\s]+/, '');
+      const gameTypeMapping: { [code: string]: GameType } = {
+        '8888': 'baucua',
+        '6666': 'caro',
+        '9999': 'tienlen',
+        '5555': 'oanquan',
+        '7777': 'trivia',
+        '3333': 'cangua',
+      };
+      const gameType: GameType = gameTypeMapping[cleanCode] || 'caro';
+      const room: GameRoom = {
+        id: 'room_' + cleanCode,
+        code: cleanCode.toUpperCase(),
+        name: `Phòng #${cleanCode.toUpperCase()} - Huỳnh Âu`,
+        gameType,
+        maxPlayers: gameType === 'baucua' ? 8 : gameType === 'caro' || gameType === 'oanquan' ? 2 : 4,
+        players: [
+          { id: 'bot_host', username: 'Kỳ Thủ Huỳnh Âu', avatar: '👑', isHost: true, isReady: true, isBot: true },
+          { ...data.player, isHost: false, isReady: true },
+        ],
+        status: 'playing',
+        hostId: 'bot_host',
+        isPrivate: false,
+        stakes: 1000,
+        gameState: null,
+        createdAt: Date.now(),
+      };
+      this.currentRoom = room;
+      this.emitLocal('room_joined', { room });
+      this.emitLocal('room_updated', { room });
+    }
   }
 }
 

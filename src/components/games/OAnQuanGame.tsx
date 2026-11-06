@@ -222,56 +222,57 @@ export const OAnQuanGame: React.FC<OAnQuanGameProps> = ({ room, currentPlayer, o
           </div>
         </div>
 
-        {/* Traditional Wooden Mancala Board */}
-        <div className="w-full max-w-2xl bg-gradient-to-b from-amber-950/80 to-amber-900/60 p-4 sm:p-6 rounded-3xl border-4 border-amber-700/60 shadow-2xl relative">
-          <div className="flex items-center justify-between gap-3">
-            {/* Left Quan (Ô Quan Trái - 11) */}
-            <div className="w-20 sm:w-24 h-48 rounded-full bg-amber-900/90 border-2 border-amber-500/50 flex flex-col items-center justify-center shadow-inner p-2 text-center">
-              <span className="text-[11px] font-black text-amber-300 uppercase">Quan Bà</span>
-              <span className="text-2xl sm:text-3xl font-black text-white mt-1">🪨 {board[11]}</span>
-            </div>
-
-            {/* 10 Small Pits Grid (5 top, 5 bottom) */}
-            <div className="flex-1 space-y-3">
-              {/* Top Row: Opponent Pits 10..6 */}
-              <div className="grid grid-cols-5 gap-2">
-                {[10, 9, 8, 7, 6].map((idx) => (
-                  <div
-                    key={idx}
-                    className="h-20 rounded-2xl bg-amber-900/40 border border-amber-700/50 flex flex-col items-center justify-center p-1 text-center shadow-inner"
-                  >
-                    <span className="text-[10px] text-slate-400">Ô {idx}</span>
-                    <span className="text-lg sm:text-xl font-black text-cyan-300">🪨 {board[idx]}</span>
-                  </div>
-                ))}
+        {/* Traditional Wooden Mancala Board (Mobile Responsive) */}
+        <div className="w-full max-w-2xl overflow-x-auto pb-2 scrollbar-none">
+          <div className="min-w-[340px] bg-gradient-to-b from-amber-950/80 to-amber-900/60 p-2.5 sm:p-6 rounded-3xl border-4 border-amber-700/60 shadow-2xl relative">
+            <div className="flex items-center justify-between gap-1.5 sm:gap-3">
+              {/* Left Quan (Ô Quan Trái - 11) */}
+              <div className="w-14 sm:w-24 h-40 sm:h-48 rounded-2xl sm:rounded-full bg-amber-900/90 border-2 border-amber-500/50 flex flex-col items-center justify-center shadow-inner p-1 sm:p-2 text-center shrink-0">
+                <span className="text-[9px] sm:text-[11px] font-black text-amber-300 uppercase">Quan Bà</span>
+                <span className="text-xl sm:text-3xl font-black text-white mt-1">🪨 {board[11]}</span>
               </div>
 
-              {/* Bottom Row: Human Pits 0..4 */}
-              <div className="grid grid-cols-5 gap-2">
-                {[0, 1, 2, 3, 4].map((idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleSelectPit(idx)}
-                    disabled={turn !== 'player' || isDistributing || !!winner}
-                    className={`h-20 rounded-2xl border-2 flex flex-col items-center justify-center p-1 text-center transition-all cursor-pointer shadow-md ${
-                      selectedPit === idx
-                        ? 'bg-amber-500/30 border-amber-400 scale-105 ring-2 ring-amber-400'
-                        : 'bg-amber-900/60 border-amber-600/50 hover:border-amber-400'
-                    }`}
-                  >
-                    <span className="text-[10px] font-bold text-amber-300">Ô của bạn</span>
-                    <span className="text-lg sm:text-xl font-black text-white">🪨 {board[idx]}</span>
-                  </button>
-                ))}
+              {/* 10 Small Pits Grid (5 top, 5 bottom) */}
+              <div className="flex-1 space-y-2 sm:space-y-3">
+                {/* Top Row: Opponent Pits 10..6 */}
+                <div className="grid grid-cols-5 gap-1 sm:gap-2">
+                  {[10, 9, 8, 7, 6].map((idx) => (
+                    <div
+                      key={idx}
+                      className="h-16 sm:h-20 rounded-xl sm:rounded-2xl bg-amber-900/40 border border-amber-700/50 flex flex-col items-center justify-center p-0.5 sm:p-1 text-center shadow-inner"
+                    >
+                      <span className="text-[9px] sm:text-[10px] text-slate-400">Ô {idx}</span>
+                      <span className="text-base sm:text-xl font-black text-cyan-300">🪨 {board[idx]}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bottom Row: Human Pits 0..4 */}
+                <div className="grid grid-cols-5 gap-1 sm:gap-2">
+                  {[0, 1, 2, 3, 4].map((idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSelectPit(idx)}
+                      disabled={turn !== 'player' || isDistributing || !!winner}
+                      className={`h-16 sm:h-20 rounded-xl sm:rounded-2xl border-2 flex flex-col items-center justify-center p-0.5 sm:p-1 text-center transition-all cursor-pointer shadow-md ${
+                        selectedPit === idx
+                          ? 'bg-amber-500/30 border-amber-400 scale-105 ring-2 ring-amber-400'
+                          : 'bg-amber-900/60 border-amber-600/50 hover:border-amber-400 active:scale-95'
+                      }`}
+                    >
+                      <span className="text-[8px] sm:text-[10px] font-bold text-amber-300">Ô bạn</span>
+                      <span className="text-base sm:text-xl font-black text-white">🪨 {board[idx]}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Quan (Ô Quan Phải - 5) */}
+              <div className="w-14 sm:w-24 h-40 sm:h-48 rounded-2xl sm:rounded-full bg-amber-900/90 border-2 border-amber-500/50 flex flex-col items-center justify-center shadow-inner p-1 sm:p-2 text-center shrink-0">
+                <span className="text-[9px] sm:text-[11px] font-black text-amber-300 uppercase">Quan Ông</span>
+                <span className="text-xl sm:text-3xl font-black text-white mt-1">🪨 {board[5]}</span>
               </div>
             </div>
-
-            {/* Right Quan (Ô Quan Phải - 5) */}
-            <div className="w-20 sm:w-24 h-48 rounded-full bg-amber-900/90 border-2 border-amber-500/50 flex flex-col items-center justify-center shadow-inner p-2 text-center">
-              <span className="text-[11px] font-black text-amber-300 uppercase">Quan Ông</span>
-              <span className="text-2xl sm:text-3xl font-black text-white mt-1">🪨 {board[5]}</span>
-            </div>
-          </div>
 
           {/* Direction Selector when a pit is selected */}
           {selectedPit !== null && (
@@ -313,6 +314,7 @@ export const OAnQuanGame: React.FC<OAnQuanGameProps> = ({ room, currentPlayer, o
               </button>
             </div>
           )}
+          </div>
         </div>
       </div>
 

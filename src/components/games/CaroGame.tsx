@@ -279,30 +279,38 @@ export const CaroGame: React.FC<CaroGameProps> = ({ room, currentPlayer, onLeave
           </div>
         </div>
 
-        {/* 15x15 Caro Board Container */}
-        <div className="p-3 sm:p-4 rounded-3xl bg-amber-950/40 border-2 border-amber-700/50 shadow-2xl shadow-amber-950/80 backdrop-blur-md">
-          <div className="grid grid-cols-15 gap-0.5 sm:gap-1 bg-amber-900/60 p-1 sm:p-2 rounded-2xl border border-amber-700/60">
-            {board.map((row, rIdx) =>
-              row.map((cell, cIdx) => {
-                const isLast = lastMove?.row === rIdx && lastMove?.col === cIdx;
-                return (
-                  <button
-                    key={`${rIdx}-${cIdx}`}
-                    onClick={() => handleCellClick(rIdx, cIdx)}
-                    disabled={!!cell || !!winner || aiThinking}
-                    className={`w-5 h-5 sm:w-8 sm:h-8 flex items-center justify-center font-black text-xs sm:text-base rounded-md transition-all select-none ${
-                      cell === 'X'
-                        ? 'bg-rose-950/80 text-rose-400 border border-rose-500/50'
-                        : cell === 'O'
-                        ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/50'
-                        : 'bg-amber-900/30 hover:bg-amber-700/40 cursor-pointer border border-amber-800/30'
-                    } ${isLast ? 'ring-2 ring-amber-400 animate-pulse' : ''}`}
-                  >
-                    {cell}
-                  </button>
-                );
-              })
-            )}
+        {/* 15x15 Caro Board Container (Mobile Responsive with smooth horizontal scrolling) */}
+        <div className="w-full max-w-full overflow-x-auto pb-2 scrollbar-thin">
+          <div className="inline-block min-w-max p-2.5 sm:p-4 rounded-3xl bg-amber-950/40 border-2 border-amber-700/50 shadow-2xl shadow-amber-950/80 backdrop-blur-md mx-auto">
+            <div
+              className="gap-0.5 sm:gap-1 bg-amber-900/60 p-1 sm:p-2 rounded-2xl border border-amber-700/60"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(15, minmax(22px, 32px))',
+              }}
+            >
+              {board.map((row, rIdx) =>
+                row.map((cell, cIdx) => {
+                  const isLast = lastMove?.row === rIdx && lastMove?.col === cIdx;
+                  return (
+                    <button
+                      key={`${rIdx}-${cIdx}`}
+                      onClick={() => handleCellClick(rIdx, cIdx)}
+                      disabled={!!cell || !!winner || aiThinking}
+                      className={`w-[22px] h-[22px] sm:w-8 sm:h-8 flex items-center justify-center font-black text-[11px] sm:text-base rounded sm:rounded-md transition-all select-none ${
+                        cell === 'X'
+                          ? 'bg-rose-950/90 text-rose-400 border border-rose-500/70 font-extrabold shadow-sm'
+                          : cell === 'O'
+                          ? 'bg-cyan-950/90 text-cyan-300 border border-cyan-500/70 font-extrabold shadow-sm'
+                          : 'bg-amber-900/30 hover:bg-amber-700/40 cursor-pointer border border-amber-800/30 active:scale-95'
+                      } ${isLast ? 'ring-2 ring-amber-400 animate-pulse' : ''}`}
+                    >
+                      {cell}
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
 

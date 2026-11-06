@@ -81,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   Arena
                 </span>
               </div>
-              <p className="text-[10px] sm:text-[11px] font-bold text-amber-400/90 hidden xs:block truncate">
+              <p className="text-[10px] sm:text-[11px] font-bold text-amber-400/90 block truncate max-w-[140px] sm:max-w-none">
                 🎮 Lập trình bởi Huỳnh Âu
               </p>
             </div>

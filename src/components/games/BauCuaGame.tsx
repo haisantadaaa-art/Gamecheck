@@ -235,8 +235,8 @@ export const BauCuaGame: React.FC<BauCuaGameProps> = ({ room, currentPlayer, onL
           )}
         </div>
 
-        {/* 6 Betting Boxes Grid */}
-        <div className="w-full max-w-2xl grid grid-cols-3 gap-2.5 sm:gap-3 mb-4">
+        {/* 6 Betting Boxes Grid (Mobile Friendly 3 columns) */}
+        <div className="w-full max-w-2xl grid grid-cols-3 gap-2 sm:gap-3 mb-4">
           {SYMBOLS.map((sym) => {
             const myBet = bets[sym.key] || 0;
             return (
@@ -244,26 +244,26 @@ export const BauCuaGame: React.FC<BauCuaGameProps> = ({ room, currentPlayer, onL
                 key={sym.key}
                 onClick={() => handlePlaceBet(sym.key)}
                 disabled={phase !== 'betting'}
-                className={`p-3.5 sm:p-4 rounded-2xl bg-gradient-to-b ${sym.color} border-2 hover:border-amber-400 transition-all flex flex-col items-center justify-center relative cursor-pointer group active:scale-95 shadow-md`}
+                className={`p-2.5 sm:p-4 rounded-2xl bg-gradient-to-b ${sym.color} border-2 hover:border-amber-400 transition-all flex flex-col items-center justify-center relative cursor-pointer group active:scale-95 shadow-md`}
               >
                 {/* Placed Chip Badge */}
                 {myBet > 0 && (
-                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] shadow-sm animate-pulse">
-                    {myBet.toLocaleString()}
+                  <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[9px] sm:text-[10px] shadow-sm animate-pulse">
+                    {myBet >= 1000 ? `${myBet / 1000}k` : myBet}
                   </div>
                 )}
-                <span className="text-4xl group-hover:scale-110 transition-transform mb-1">{sym.icon}</span>
-                <span className="text-sm font-black text-slate-100">{sym.label}</span>
-                <span className="text-[10px] text-slate-400 mt-0.5">Tỷ lệ: 1 x 1, 2, 3</span>
+                <span className="text-3xl sm:text-4xl group-hover:scale-110 transition-transform mb-1">{sym.icon}</span>
+                <span className="text-xs sm:text-sm font-black text-slate-100">{sym.label}</span>
+                <span className="text-[9px] sm:text-[10px] text-slate-400 mt-0.5">Ăn x1, x2, x3</span>
               </button>
             );
           })}
         </div>
 
         {/* Chip Selection Bar */}
-        <div className="w-full max-w-2xl p-3 bg-slate-900 rounded-2xl border border-slate-800 flex items-center justify-between gap-2">
-          <span className="text-xs font-semibold text-slate-400 hidden sm:inline">Mức Cược:</span>
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="w-full max-w-2xl p-2.5 sm:p-3 bg-slate-900 rounded-2xl border border-slate-800 flex items-center justify-between gap-2 overflow-x-auto">
+          <span className="text-xs font-semibold text-slate-400 hidden sm:inline shrink-0">Mức Cược:</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {CHIP_VALUES.map((val) => (
               <button
                 key={val}
@@ -271,7 +271,7 @@ export const BauCuaGame: React.FC<BauCuaGameProps> = ({ room, currentPlayer, onL
                   soundManager.playClick();
                   setSelectedChip(val);
                 }}
-                className={`px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-xl font-black text-[11px] sm:text-xs transition cursor-pointer ${
                   selectedChip === val
                     ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 scale-105'
                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -281,7 +281,7 @@ export const BauCuaGame: React.FC<BauCuaGameProps> = ({ room, currentPlayer, onL
               </button>
             ))}
           </div>
-          <div className="text-xs font-bold text-amber-400 flex items-center gap-1">
+          <div className="text-[11px] sm:text-xs font-bold text-amber-400 flex items-center gap-1 shrink-0">
             <span>Ví:</span>
             <span>{user?.coins.toLocaleString()} Xu</span>
           </div>

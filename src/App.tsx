@@ -73,6 +73,10 @@ function GamePlatform() {
       setRoomMessages((prev) => [...prev, data.message]);
     });
 
+    const unsubError = gameSocket.on('error', (data) => {
+      alert(data.message || 'Có lỗi xảy ra khi vào phòng chơi!');
+    });
+
     return () => {
       unsubCreated();
       unsubJoined();
@@ -80,6 +84,7 @@ function GamePlatform() {
       unsubRoomList();
       unsubLeft();
       unsubChat();
+      unsubError();
     };
   }, []);
 
@@ -164,9 +169,20 @@ function GamePlatform() {
     setCurrentRoom(instantRoom);
   };
 
-  // Join Room by Code
+  // Join Room by Code (Sanitized & Instant)
   const handleJoinRoomByCode = (code: string) => {
-    if (!isRegistered) return;
+    if (!isRegistered) {
+      alert('Vui lòng tạo tài khoản hiệp khách trước khi vào phòng chơi!');
+      return;
+    }
+
+    const cleanCode = (code || '').toString().trim().replace(/^[#\s]+/, '');
+    if (!cleanCode) {
+      alert('Vui lòng nhập mã phòng hợp lệ!');
+      return;
+    }
+
+    soundManager.playClick();
 
     const player: RoomPlayer = {
       id: user?.id || 'guest',
@@ -176,10 +192,33 @@ function GamePlatform() {
       isReady: true,
     };
 
+    // Pre-check if matching an existing room in activeRoomsList or featured list
+    const foundRoom = activeRoomsList.find(
+      (r) => r.code?.toLowerCase() === cleanCode.toLowerCase() || r.id === cleanCode
+    );
+
     gameSocket.joinRoom({
-      roomCode: code,
+      roomCode: cleanCode,
       player,
     });
+
+    if (foundRoom) {
+      const optRoom: GameRoom = {
+        id: foundRoom.id,
+        code: foundRoom.code,
+        name: foundRoom.name,
+        gameType: foundRoom.gameType,
+        maxPlayers: foundRoom.maxPlayers,
+        players: [{ ...player, isHost: false, isReady: true }],
+        status: 'playing',
+        hostId: 'host',
+        isPrivate: false,
+        stakes: foundRoom.stakes || 1000,
+        gameState: null,
+        createdAt: Date.now(),
+      };
+      setCurrentRoom(optRoom);
+    }
   };
 
   // Add Bot to current room
@@ -462,9 +501,6 @@ function GamePlatform() {
             © 2026 VietPlay Arena - <span className="text-amber-400 font-bold">Game được lập trình bởi Huỳnh Âu</span>.
           </p>
           <div className="flex items-center gap-4 text-[11px]">
-            <button onClick={() => setIsDeployGuideOpen(true)} className="hover:text-amber-400 transition cursor-pointer">
-              Deploy Vercel & GitHub
-            </button>
             <button onClick={() => setIsLiveVoiceOpen(true)} className="hover:text-amber-400 transition cursor-pointer">
               Live AI Master (Huỳnh Âu)
             </button>
