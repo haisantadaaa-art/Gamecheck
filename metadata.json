@@ -1,0 +1,6 @@
+{
+  "name": "VietPlay - Đấu Trường Game Việt & Hot Game Nhiều Người",
+  "description": "Cổng game trực tuyến nhiều người chơi với các trò chơi dân gian và hot nhất Việt Nam: Cờ Caro, Bầu Cua Tôm Cá, Tiến Lên Miền Nam, Cờ Cá Ngựa, tích hợp AI Game Master giọng nói và tin tức game trực tiếp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
